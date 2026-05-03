@@ -19,7 +19,7 @@
     "build": "tsup",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "node --eval \"require('node:fs').mkdirSync('data',{recursive:true})\" && drizzle-kit migrate"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
