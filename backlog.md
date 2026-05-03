@@ -7,9 +7,28 @@
 
 ---
 
+## Definición de Listo (DoR) y Definición de Terminado (DoD)
+
+> Aplican a **toda HdU** — presente y futura — que toque el scraper, ingest o tools MCP. La completitud del corpus es una propiedad no negociable: servir el 80% del RAN con la confianza del 100% es peor que no servir RAN.
+
+### DoR — Para que una HdU pueda comenzar
+
+1. **Cobertura esperada documentada.** Para cada fuente afectada (normativa2/NCG, normativa2/CIR, normativa2/OFC, RAN, Compendio Seguros), la HdU incluye el umbral mínimo de entradas que debe producir. Los umbrales de referencia están en HdU-07e; si la estructura del sitio CMF cambia, la HdU que lo detecta actualiza los umbrales antes de arrancar.
+2. **Fixtures de variedad estructural.** Los fixtures cubren al menos: norma vigente, norma derogada, norma con relaciones (modifica/deroga), y — para RAN y Compendio — representación de al menos dos libros/capítulos distintos.
+3. **Criterio de aborto definido.** La HdU especifica qué porcentaje de fallos detiene la corrida (default: >2%, per SCRAPER.md §4.6).
+
+### DoD — Para que una HdU pueda cerrarse
+
+1. **Umbrales de completitud superados.** El pipeline produce ≥ el umbral definido para cada fuente afectada. Si es la primera corrida real contra CMF, la HdU registra el count como baseline en `data/runs/` en lugar de comparar.
+2. **Regresión de cobertura bloqueante.** Si la HdU reduce el número de entradas de cualquier fuente respecto al baseline previo en más del 5%, el PR no puede mergearse sin explicación documentada en el cuerpo del PR.
+3. **Test de completitud incluido.** Toda HdU scraper/ingest incluye al menos un test que afirma `entries.length >= UMBRAL_MINIMO` para cada fuente que toca.
+4. **`pnpm typecheck && pnpm lint && pnpm test` verde.**
+
+---
+
 ## Fase 1 — MVP
 
-**Done criteria:** validador firma 20 normas sample con 0 errores graves. Release público v0.1 en GitHub. Tools 1-4 + `server_info` operativas. Cobertura: NCG vigentes + RAN + Compendio Seguros. Audit trail completo desde la primera tool. **Scraper end-to-end produciendo `cmf_norms.db`**.
+**Done criteria:** validador firma 20 normas sample con 0 errores graves. Release público v0.1 en GitHub. Tools 1-4 + `server_info` operativas. Cobertura: NCG vigentes + RAN + Compendio Seguros — **corpus completo según umbrales de HdU-07e verificados**. Audit trail completo desde la primera tool. **Scraper end-to-end produciendo `cmf_norms.db`**.
 
 ### Infra y bootstrap
 
@@ -49,14 +68,47 @@
 - [ ] **HdU-07a — Discovery NCG / Circulares / Oficios Circulares vía form `normativa2.php`**
   Como dev del scraper, quiero `src/scraper/discovery/normativa2.ts` que itere `hidden_mercado=V` y `hidden_mercado=S` (mercados Valores y Seguros) sobre el form `normativa2.php`, parsee la tabla con `cheerio` (columnas: tipo, número, fecha, título, modifica/modificada-por, deroga/derogada-por, vigencia) y emita entradas a `data/index.jsonl` con `urlPdf` construida según `cmfchile.cl/normativa/{tipo}_{numero}_{año}.pdf`. Se aprovecha que el form devuelve casi todo el modelo de `norms` + `norm_relations` en una pasada.
 
-- [ ] **HdU-07b — Discovery RAN (Bancos)**
-  Como dev del scraper, quiero `src/scraper/discovery/ran.ts` que descubra el mapping `{capítulo}-{sección}` → `articleID` necesario para construir `cmfchile.cl/portal/principal/613/articles-{ID}_doc_pdf.pdf`. **Probar primero `cronologiabancaria.cmfchile.cl/sbifweb/servlet/LeyNorma?indice=...&LNAN=1`** que parece ofrecer índice estructurado legacy SBIF; si no sirve, fallback al crawl del portal `w3-propertyvalue-28192.html` y sus sub-páginas. Output: entradas a `data/index.jsonl` con id `ran-{cap}-{sec}`.
+- [ ] **HdU-07b — Discovery RAN (Bancos)** ⚠️ _Código existente incompleto — requiere rework antes de HdU-08_
+  Como dev del scraper, quiero `src/scraper/discovery/ran.ts` que produzca el **índice completo** de capítulos/secciones vigentes del RAN, no solo los que aparezcan en la página de entrada del portal.
+
+  **Defecto en la implementación actual:** `ran.ts` busca links `w3-article-{ID}.html` en `w3-propertyvalue-28192.html`. El spike confirmó que esa página *no lista los capítulos* — es navegacional, no un índice. En producción la implementación actual devuelve cero o muy pocos capítulos, rompiendo el DoD.
+
+  **Estrategia requerida (en orden de preferencia):**
+  1. **Primario:** `cronologiabancaria.cmfchile.cl/sbifweb/servlet/LeyNorma?indice=...&LNAN=1` — índice estructurado del legacy SBIF, identificado en el spike como la fuente más confiable para el mapping `{capítulo}-{sección}` → `{articleID}`. Investigar parámetros exactos como primera acción de la HdU.
+  2. **Fallback:** crawl recursivo desde `w3-propertyvalue-28192.html` siguiendo los links de subsección hasta agotar los `w3-article-{ID}.html`.
+  3. **Último recurso:** lista estática versionada en el repo (con fecha de última verificación manual) usada solo si las dos anteriores fallan, y marcada como tal en los logs.
+
+  **Criterio de completitud (DoD específico):** la implementación debe descubrir ≥ 100 entradas RAN (umbral conservador; el RAN vigente tiene del orden de 120–160 capítulos/secciones activos — calibrar en primera corrida real). Si no se alcanza el umbral, `fetchRan()` debe lanzar error explícito; `runDiscovery` no escribe `index.jsonl` parcial.
+
+  Output: entradas a `data/index.jsonl` con id `ran-{cap}-{sec}`, sector `BANCARIO`.
 
 - [ ] **HdU-07c — Discovery Compendio Seguros**
   Como dev del scraper, quiero `src/scraper/discovery/compendio_seguros.ts` que use el form `normativa.php?mercado=S` para listar normativa de seguros (incluye Compendio) y descubra la convención de paths bajo `/web/compendio/...` (ej. `/web/compendio/ncg/ncg_221_2008.pdf`). **NO** usar la página `publicaciones_compendionormas_seguros.php` porque es comercial (vende ediciones impresas). Output: entradas a `data/index.jsonl` con id `cseg-{libro}-{titulo}`.
 
 - [ ] **HdU-07d — Persistencia de `index.jsonl` y manejo de DESAPARECIDA**
   Como dev del scraper, quiero `src/scraper/discovery/index.ts` que combine los 3 outputs anteriores en un único `data/index.jsonl`, compare contra el index de la corrida previa, y marque como `DESAPARECIDA` (sin borrar) cualquier norma ya no presente — para elevar al validador legal sin perder histórico (SCRAPER.md §4.1).
+
+- [ ] **HdU-07e — Completitud del corpus: umbrales, verificación y gate de corrida**
+  Como mantenedor del scraper, quiero que `runDiscovery` verifique que cada fuente supera su umbral mínimo **antes** de escribir `index.jsonl` o pasar al downloader, para que una corrida con corpus incompleto nunca llegue silenciosamente a producción.
+
+  **Umbrales mínimos iniciales** (conservadores — calibrar y actualizar tras primera corrida real contra CMF):
+  | Fuente | Umbral inicial |
+  |---|---|
+  | normativa2 NCG (valores + seguros combinados) | ≥ 300 entradas |
+  | normativa2 Circulares (valores + seguros combinados) | ≥ 150 entradas |
+  | normativa2 Oficios Circulares | ≥ 30 entradas |
+  | RAN | ≥ 100 capítulos/secciones |
+  | Compendio Seguros | ≥ 30 títulos/capítulos |
+
+  **Comportamiento requerido:**
+  - Si cualquier fuente queda por debajo de su umbral → log de error estructurado (`{ source, count, threshold, gap }`) y **abort**: no se escribe `index.jsonl`, no se continúa al download.
+  - Si es la primera corrida (no hay baseline en `data/runs/`) → registrar counts como baseline en `data/runs/{timestamp}_baseline.json` y continuar sin abortar.
+  - Los umbrales se persisten en `data/discovery_thresholds.json` (commiteado en el repo como referencia; sobreescribible por variable de entorno `CMF_THRESHOLDS_PATH` para testing).
+
+  **Tests requeridos:**
+  - Count por debajo del umbral → `runDiscovery` arroja error antes de escribir JSONL.
+  - Primera corrida sin baseline → registra baseline y continúa.
+  - Counts sobre umbral → escribe JSONL completo sin error.
 
 - [ ] **HdU-08 — Downloader con caché y rate limit**
   Como dev del scraper, quiero `src/scraper/downloader.ts` que descargue PDFs/HTML del índice usando `undici` con `p-limit(4)`, retries exponenciales (3 intentos, base 2s), timeout 30s, User-Agent identificable y caché local en `data/raw/{id}/{fecha}.pdf` honrando `If-Modified-Since`, para no saturar a CMF ni re-descargar contenido inalterado.
