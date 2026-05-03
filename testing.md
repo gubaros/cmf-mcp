@@ -22,7 +22,7 @@
 - **Snapshots:** `vitest` built-in (inline o file-based)
 - **Property:** `fast-check` (cuando aplique)
 - **DB de test:** `better-sqlite3` con `:memory:` o tempfile (con cleanup automático en `afterEach`)
-- **Fixtures:** `tests/fixtures/` con normas sample en formato JSON parsed (ver HdU-17)
+- **Fixtures:** `tests/fixtures/` con normas sample en formato JSON parsed + PDFs de muestra para tests del scraper (ver HdU-25)
 - **Coverage:** `vitest --coverage` (informativo, no gate bloqueante en MVP)
 
 ---
@@ -31,27 +31,40 @@
 
 ```
 src/
-└── tools/
-    └── getArticle.ts
+├── server.ts            # MCP entry
+├── tools/               # MCP tools
+├── scraper/             # Scraping pipeline (proceso aparte)
+└── ingest/              # JSON parsed → SQLite
+
 tests/
 ├── fixtures/
-│   ├── ncg-461.parsed.json
-│   ├── ran-1-13.parsed.json
-│   └── ...
+│   ├── pdfs/            # PDFs sample para tests del scraper
+│   │   └── ncg-461.pdf
+│   ├── parsed/          # JSON parsed para tests de ingest y MCP
+│   │   ├── ncg-461.parsed.json
+│   │   ├── ran-1-13.parsed.json
+│   │   └── ...
+│   └── html/            # snippets HTML para tests del parser HTML
 ├── helpers/
 │   ├── db.ts            # crea DB in-memory + corre migrations + carga fixtures
 │   ├── server.ts        # arma MCP server con tools y logging registrados
 │   └── logSink.ts       # captura los eventos de log para assertions
 ├── unit/
-│   └── ingest/
-│       ├── normalizer.test.ts
-│       └── validator.test.ts
+│   ├── ingest/
+│   │   ├── normalizer.test.ts
+│   │   └── validator.test.ts
+│   └── scraper/
+│       ├── parsers/{pdf,html}.test.ts
+│       ├── segmenter.test.ts
+│       └── changeDetector.test.ts
 ├── integration/
-│   └── tools/
-│       ├── getArticle.test.ts
-│       ├── searchArticles.test.ts
-│       └── ...
-└── __snapshots__/       # output esperado por tool
+│   ├── tools/
+│   │   ├── getArticle.test.ts
+│   │   ├── searchArticles.test.ts
+│   │   └── ...
+│   └── scraper/
+│       └── runner.test.ts   # pipeline e2e con fixtures locales (sin red)
+└── __snapshots__/       # output esperado por tool y por etapa del scraper
 ```
 
 ---
@@ -63,11 +76,18 @@ tests/
 2. Generar migración drizzle (o SQL crudo para FTS5) hasta que pase.
 3. Refactor.
 
-### 4.2 Ingest — loader / normalizer / validator (HdU-07 a 09)
+### 4.2 Ingest — loader / normalizer / validator (HdU-15 a 17)
 1. Fixture de norma input + estado esperado en DB.
 2. Test: feliz path produce filas correctas.
 3. Test: norma malformada (sin `urlOficial`, ID inválido, etc.) → validator rechaza con error tipado, **nada queda en DB**.
 4. Implementar hasta verde.
+
+### 4.2b Scraper — parsers / segmenter / changeDetector (HdU-09 a 12)
+1. Fixture: PDF/HTML real (small) en `tests/fixtures/pdfs|html/`.
+2. Test parser: extracción produce texto esperado contra snapshot.
+3. Test segmenter: árbol parent→child con número correcto de artículos y anexos; invariantes (numeración sin saltos) verificadas.
+4. Test changeDetector: hash de PDF cambia / hash de texto no → solo `fechaScrape` actualizada; hash de texto cambia → versión previa va a `articles_history`.
+5. **Sin red en tests.** El downloader se mockea solo para tests del runner orquestador (HdU-14); los parsers reciben bytes ya descargados.
 
 ### 4.3 Logging middleware (HdU-06 — bloqueante)
 1. Test: tool dummy envuelta por el middleware emite log con `requestId`, `tool`, `input`, `latencyMs`, `result=OK`.
@@ -76,7 +96,7 @@ tests/
 4. Test: dos llamadas concurrentes generan dos `requestId` distintos.
 5. Implementar middleware. **Esta capa pasa antes que cualquier tool real.**
 
-### 4.4 Tool MCP (HdU-10 a 14, 22, 23, 29, 30)
+### 4.4 Tool MCP (HdU-18 a 22, 30, 31, 38, 39)
 1. Test: input válido (zod) → output con shape esperado contra fixture.
 2. Test: input inválido → error MCP tipado (nunca excepción cruda al SDK).
 3. Test: ID inexistente → error explícito, no "mejor coincidencia" (regla de oro #2).
@@ -102,7 +122,7 @@ pnpm test -u             # actualizar snapshots (revisar el diff antes de commit
 
 ---
 
-## 6. CI gates (HdU-19)
+## 6. CI gates (HdU-27)
 
 GitHub Actions corre en cada PR:
 

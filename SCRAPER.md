@@ -1,10 +1,9 @@
 # CMF MCP Server — Guía del Scraper
 
 > **Audiencia:** ingeniero/a a cargo de la extracción y carga de la normativa CMF.
-> **Repo:** `git@github.com:gubaros/cmf-scrapper.git`
-> **Repo del consumidor:** `git@github.com:gubaros/cmf-mcp.git` (lee la SQLite que produce este scraper)
-> **Output principal:** `cmf_norms.db` distribuido vía GitHub Release del repo `cmf-mcp`.
-> **Independencia:** este pipeline no comparte código con scrapers de otros proyectos. Es un sistema dedicado al sitio y formatos de CMF Chile.
+> **Ubicación:** **mismo repo que el MCP** (`gubaros/cmf-mcp`), bajo `src/scraper/`. Comparte schema Drizzle, tipos y utilidades con el server MCP — pero **corre como proceso separado** (entry point `pnpm scrape`, nunca dentro del proceso del MCP).
+> **Output principal:** `data/cmf_norms.db` distribuido vía GitHub Release.
+> **Independencia operacional:** aunque el código vive en el mismo repo, scraper y MCP server nunca corren en el mismo proceso. Lo único que comparten es schema, tipos y la SQLite resultante.
 
 ---
 
@@ -16,7 +15,7 @@ Mantener un mirror estructurado, versionado y auditable de la normativa vigente 
 
 ## 2. Stack técnico
 
-Mismo runtime que el MCP — TypeScript / Node.js — para que las personas puedan moverse entre ambos repos sin cambiar de mentalidad.
+Mismo runtime que el MCP — TypeScript / Node.js — y mismo `package.json`, ya que viven en el mismo repo.
 
 | Componente | Elección | Razón |
 |---|---|---|
@@ -26,7 +25,7 @@ Mismo runtime que el MCP — TypeScript / Node.js — para que las personas pued
 | Parsing PDF | `pdfjs-dist`; `pdf-parse` como fallback | Coverage del 95% de los PDFs CMF |
 | OCR (último recurso) | `tesseract.js` | Solo si el PDF no tiene capa de texto |
 | Parsing HTML | `cheerio` | Selector CSS sobre las plantillas CMF |
-| Storage | **SQLite + drizzle-orm** | Misma DB que consume el MCP — escribimos directo |
+| Storage | **SQLite + drizzle-orm** | Misma DB que consume el MCP, mismo schema importado desde `src/db/schema.ts` |
 | Testing | `vitest` + snapshot por norma testigo | Detecta regresiones de parseo silenciosas |
 | Lint/format | `biome` | Mismo binario que el MCP |
 | Schedule local | `node-cron` o cron del sistema | No introducir Airflow/Temporal en MVP |
@@ -91,7 +90,7 @@ El índice se regenera **antes** de cada corrida. Si una norma desaparece del í
 
 - **HTTP client:** `undici` con timeout 30s, retries exponenciales (3 intentos, base 2s).
 - **Concurrencia:** máximo **4 requests simultáneos** a `cmfchile.cl` con `p-limit(4)`. No saturar al regulador.
-- **User-Agent identificable:** `cmf-mcp-scraper/0.1 (+https://github.com/gubaros/cmf-scrapper)`. Buena ciudadanía y margen si nos contactan.
+- **User-Agent identificable:** `cmf-mcp-scraper/0.1 (+https://github.com/gubaros/cmf-mcp)`. Buena ciudadanía y margen si nos contactan.
 - **Caché local:** todos los binarios descargados van a `data/raw/{id}/{fecha}.pdf`. Nunca se redescarga si `Last-Modified` o el hash remoto no cambió. Honrar `If-Modified-Since`.
 
 ### 4.3 Parsing
@@ -183,18 +182,18 @@ Cada corrida produce:
 
 El MCP **solo consume** `cmf_norms.db`. Los demás artefactos son para auditoría.
 
-### 7.1 Publicación al repo del MCP
+### 7.1 Publicación del corpus
 
 Cuando el validador firma la corrida:
 
-1. Se sube `cmf_norms.db` a un **GitHub Release** del repo `cmf-mcp` (no de `cmf-scrapper`).
+1. Se sube `cmf_norms.db` a un **GitHub Release** del repo `cmf-mcp` (separado del release del código del server).
 2. El release notes incluye:
-   - Versión semver del corpus (ej. `corpus-2025.05.03`).
+   - Versión semver del corpus (ej. `corpus-2026.05.03`).
    - SHA256 del archivo `.db`.
    - Resumen del diff (normas nuevas, modificadas, derogadas).
-   - Link a la corrida del scraper para trazabilidad.
+   - Link al run del scraper (commit hash + timestamp) para trazabilidad.
 
-El repo `cmf-scrapper` se mantiene como código fuente y no aloja la DB.
+El binario `.db` nunca se commitea al repo. Releases de código y de corpus usan tags distintos (`v0.1.0` vs `corpus-2026.05.03`) para separar versiones del software de versiones del dataset.
 
 ---
 

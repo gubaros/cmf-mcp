@@ -5,9 +5,8 @@
 
 ## Estado actual
 
-- Commit inicial. Solo existe `README.md`. El código aún no se escribió.
-- Documentación de diseño en `DEVELOPER.md`, `SCRAPER.md`, `COMPLIANCE_ANALYST.md`, `LEGAL_VALIDATOR.md`.
-- El scraper vive en un repo separado (`cmf-scrapper`). El MCP **no scrapea en runtime** — solo lee SQLite.
+- Bootstrap pendiente (HdU-01). Existen docs (CLAUDE.md, DEVELOPER.md, SCRAPER.md, COMPLIANCE_ANALYST.md, LEGAL_VALIDATOR.md, backlog.md, testing.md), LICENSE y workflows CI; el código TypeScript aún no se escribió.
+- **Monorepo:** server MCP (`src/server.ts` + `src/tools/`) y scraper (`src/scraper/`) viven en el mismo repo. **Comparten** schema Drizzle, tipos y utilidades; **nunca corren en el mismo proceso** (entry points separados: `pnpm start` vs `pnpm scrape`). El MCP no scrapea en runtime — solo lee SQLite.
 
 ## Stack (decidido — ver [DEVELOPER.md](DEVELOPER.md) §2)
 
@@ -25,12 +24,21 @@ No se usa: Postgres, Docker en MVP, Elasticsearch, frameworks web, Express.
 
 ```
 src/
-├── server.ts          # entry MCP stdio
-├── tools/             # un archivo + schema zod por tool
-├── db/                # schema drizzle, client, queries, migrations
-├── ingest/            # carga del output del scraper
-└── shared/            # enums, types, citations
+├── server.ts          # entry MCP stdio (pnpm start)
+├── tools/             # un archivo + schema zod por tool MCP
+├── scraper/           # pipeline de scraping (pnpm scrape)
+│   ├── discovery.ts
+│   ├── downloader.ts
+│   ├── parsers/{pdf,html}.ts
+│   ├── segmenter.ts
+│   ├── changeDetector.ts
+│   └── runner.ts
+├── ingest/            # JSON parsed → SQLite (loader, normalizer, validator)
+├── db/                # COMPARTIDO: schema drizzle, client, queries, migrations
+├── shared/            # COMPARTIDO: enums, types, citations
+└── cli/               # entry points separados: server.ts y scrape.ts
 data/cmf_norms.db      # NO se commitea — distribuida vía GitHub Release
+data/{raw,parsed,runs,logs}/  # NO se commitean — artefactos locales
 ```
 
 ## Tools MCP que expondrá
@@ -51,7 +59,7 @@ data/cmf_norms.db      # NO se commitea — distribuida vía GitHub Release
 2. **No inventar IDs.** Si el agente pide algo que no está en DB, error explícito — no "mejor coincidencia".
 3. **`estado=VIGENTE` es default en búsquedas.** Para devolver derogadas hay que pedirlo explícito.
 4. **No hay endpoint de interpretación.** El MCP entrega texto y metadata.
-5. **Scraper y MCP nunca corren en el mismo proceso.**
+5. **Scraper y MCP nunca corren en el mismo proceso** (aunque vivan en el mismo repo). Entry points separados; nada de `src/scraper/` se importa desde `src/server.ts` ni `src/tools/`.
 6. **Toda norma servida debe tener entrada en `validation_log`** (en release público; en `dev` se puede saltar).
 7. **Cada cambio de schema → migración Drizzle.** Sin SQL manual sobre la DB distribuida.
 
@@ -61,7 +69,8 @@ data/cmf_norms.db      # NO se commitea — distribuida vía GitHub Release
 pnpm install
 cp /path/to/cmf_norms.db data/    # release distribuido aparte
 pnpm typecheck && pnpm lint && pnpm test
-pnpm start                         # stdio MCP server
+pnpm start                         # MCP server (stdio) — lee SQLite
+pnpm scrape                        # scraper (proceso aparte) — escribe SQLite
 ```
 
 ## Documentación canónica por rol
@@ -73,7 +82,7 @@ pnpm start                         # stdio MCP server
 
 ## Lo que NO entra en este repo
 
-- El código del scraper (vive en `cmf-scrapper`).
 - El binario `data/cmf_norms.db` (se distribuye por GitHub Release con SHA256 publicado).
+- Artefactos locales del scraper (`data/raw/`, `data/parsed/`, `data/runs/`) ni audit logs del MCP (`data/logs/`).
 - Leyes habilitantes (18.045, 18.046, DFL 3, DFL 251, 20.712, 21.000) — solo normativa CMF.
 - Estadísticas, registros públicos, hechos esenciales, jurisprudencia administrativa, instructivos UAF/SII.

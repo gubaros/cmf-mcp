@@ -2,9 +2,7 @@
 
 > **Producto:** Servidor MCP local que expone toda la normativa vigente de la Comisión para el Mercado Financiero (Chile) como herramientas consultables por agentes IA.
 > **Audiencia:** desarrollador a cargo de la implementación.
-> **Repos:**
-> - MCP Server: `git@github.com:gubaros/cmf-mcp.git`
-> - Scraper: `git@github.com:gubaros/cmf-scrapper.git`
+> **Repo:** `git@github.com:gubaros/cmf-mcp.git` — **monorepo** que contiene tanto el server MCP (`src/server.ts` + `src/tools/`) como el scraper (`src/scraper/`). Comparten schema Drizzle, tipos y utilidades, pero corren como procesos separados (`pnpm start` vs `pnpm scrape`).
 > **Distribución:** producto **gratuito**, open-source friendly. La estrategia comercial es demostrar capacidad geográfica y generar leads, no monetizar el corpus directamente.
 > **Independencia:** no comparte código, esquemas ni configuración con otros productos internos. Es deliberado y refuerza la narrativa multi-jurisdicción.
 
@@ -49,8 +47,8 @@ El servidor **no genera opinión legal**. Es una capa de recuperación auditada.
 ```
 cmf-mcp/
 ├── src/
-│   ├── server.ts              # Entry point MCP (stdio)
-│   ├── tools/                 # Una función + schema zod por tool
+│   ├── server.ts              # Entry point MCP (stdio) — pnpm start
+│   ├── tools/                 # Una función + schema zod por tool MCP
 │   │   ├── listNorms.ts
 │   │   ├── getNorm.ts
 │   │   ├── getArticle.ts
@@ -58,21 +56,38 @@ cmf-mcp/
 │   │   ├── compareArticles.ts
 │   │   ├── getRelations.ts
 │   │   └── serverInfo.ts
-│   ├── db/
-│   │   ├── schema.ts          # Drizzle schema (fuente de verdad)
-│   │   ├── client.ts          # Singleton de better-sqlite3
-│   │   ├── queries.ts         # Queries tipadas reutilizables
-│   │   └── migrations/        # Generadas por drizzle-kit
-│   ├── ingest/                # Carga desde el output del scraper
+│   ├── scraper/               # Pipeline de scraping (corre como proceso aparte)
+│   │   ├── discovery.ts       # Genera data/index.jsonl
+│   │   ├── downloader.ts      # HTTP con caché + rate limit
+│   │   ├── parsers/
+│   │   │   ├── pdf.ts         # pdfjs-dist + fallback
+│   │   │   └── html.ts        # cheerio
+│   │   ├── segmenter.ts       # Detección de jerarquía y artículos
+│   │   ├── changeDetector.ts  # Hashes y versionado
+│   │   └── runner.ts          # Orquestador de una corrida
+│   ├── ingest/                # Carga del JSON parsed → SQLite
 │   │   ├── loader.ts
 │   │   ├── normalizer.ts
 │   │   └── validator.ts
-│   └── shared/
-│       ├── enums.ts           # TipoNorma, Sector, EstadoVigencia
-│       ├── types.ts
-│       └── citations.ts
+│   ├── db/                    # COMPARTIDO entre server y scraper
+│   │   ├── schema.ts          # Drizzle schema (única fuente de verdad)
+│   │   ├── client.ts          # Singleton de better-sqlite3
+│   │   ├── queries.ts         # Queries tipadas reutilizables
+│   │   └── migrations/        # Generadas por drizzle-kit
+│   ├── shared/                # COMPARTIDO entre server y scraper
+│   │   ├── enums.ts           # TipoNorma, Sector, EstadoVigencia
+│   │   ├── types.ts
+│   │   └── citations.ts
+│   └── cli/                   # Entry points separados
+│       ├── server.ts          # Alias del MCP server (stdio)
+│       └── scrape.ts          # Entry del scraper — pnpm scrape
 ├── data/
-│   └── cmf_norms.db           # SQLite (no se commitea; va por GitHub Release)
+│   ├── cmf_norms.db           # SQLite (no se commitea; va por GitHub Release)
+│   ├── index.jsonl            # índice maestro del scraper (no se commitea)
+│   ├── raw/                   # PDFs descargados (no se commitea)
+│   ├── parsed/                # JSON intermedios del scraper (no se commitea)
+│   ├── runs/                  # Logs y diffs por corrida (no se commitea)
+│   └── logs/                  # Audit trail del MCP server (no se commitea)
 ├── tests/
 ├── package.json
 ├── tsconfig.json
@@ -82,10 +97,11 @@ cmf-mcp/
 └── DEVELOPER.md               # Este archivo
 ```
 
-El scraper vive en `cmf-scrapper`. El MCP **no scrappea en runtime** — solo lee SQLite. Esto:
+**Server MCP y scraper viven en el mismo repo** pero **nunca corren en el mismo proceso**. El MCP no scrappea en runtime — solo lee SQLite. Esto:
 - Evita rate limits de CMF en respuestas a usuarios.
 - Permite que un cambio en CMF rompa el scraper sin tumbar el servicio.
 - Da control sobre qué versión del corpus se distribuye.
+- Mantener ambos en el mismo repo permite que `src/db/schema.ts` sea fuente única de verdad y elimina drift entre productor (scraper) y consumidor (server).
 
 ---
 
@@ -206,8 +222,11 @@ pnpm lint
 # Tests
 pnpm test
 
-# Levanta el servidor MCP en stdio
+# Levanta el servidor MCP en stdio (consume data/cmf_norms.db)
 pnpm start
+
+# Corre el scraper (proceso aparte — escribe a data/cmf_norms.db)
+pnpm scrape
 ```
 
 Configuración Claude Desktop (`claude_desktop_config.json`) en producción:
@@ -266,6 +285,6 @@ Como el producto es gratuito, la distribución define la fricción de adopción.
 2. **No inventar IDs.** Si el agente pide algo que no está en DB, error explícito, no "mejor coincidencia".
 3. **`VIGENTE` es default en búsquedas.** Para devolver derogadas hay que pedirlo explícito.
 4. **No hay endpoint de interpretación.** El MCP entrega texto y metadata.
-5. **Scraper y MCP nunca corren en el mismo proceso.**
+5. **Scraper y MCP nunca corren en el mismo proceso**, aunque vivan en el mismo repo. Entry points separados (`pnpm scrape` vs `pnpm start`); no importar nada de `src/scraper/` desde `src/server.ts` ni `src/tools/`.
 6. **Toda norma servida debe tener entrada en `validation_log`.** En modo `dev` se puede saltar; en release público no.
 7. **Cada cambio de schema → migración Drizzle.** Sin SQL manual sobre la DB distribuida.
