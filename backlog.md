@@ -44,23 +44,42 @@
 
 > El scraper vive en `src/scraper/` y corre como proceso independiente del MCP. Comparte `src/db/schema.ts` y `src/shared/`. Cada subtarea es un módulo testeable contra fixtures.
 
-- [ ] **HdU-07 — Discovery: índice maestro de normas CMF**
-  Como dev del scraper, quiero `src/scraper/discovery.ts` que recorra los portales de CMF y genere `data/index.jsonl` con una entrada por norma detectada (`id`, `tipo`, `sector`, `urlPdf`, `hashRemoto`, `estadoAparente`), para que el resto del pipeline trabaje contra una lista determinística. Si una norma desaparece entre corridas, marcarla `DESAPARECIDA` (nunca borrar — SCRAPER.md §4.1).
+> **HdU-07 — Discovery (subdividida tras spike — ver `spikes/cmf_discovery.md` §2 y §5).** El sitio CMF tiene 3 fuentes con patterns distintos; conviene un módulo por fuente que escriben al mismo `data/index.jsonl`. El umbrella entry de `discovery.ts` solo orquesta los 3.
+
+- [ ] **HdU-07a — Discovery NCG / Circulares / Oficios Circulares vía form `normativa2.php`**
+  Como dev del scraper, quiero `src/scraper/discovery/normativa2.ts` que itere `hidden_mercado=V` y `hidden_mercado=S` (mercados Valores y Seguros) sobre el form `normativa2.php`, parsee la tabla con `cheerio` (columnas: tipo, número, fecha, título, modifica/modificada-por, deroga/derogada-por, vigencia) y emita entradas a `data/index.jsonl` con `urlPdf` construida según `cmfchile.cl/normativa/{tipo}_{numero}_{año}.pdf`. Se aprovecha que el form devuelve casi todo el modelo de `norms` + `norm_relations` en una pasada.
+
+- [ ] **HdU-07b — Discovery RAN (Bancos)**
+  Como dev del scraper, quiero `src/scraper/discovery/ran.ts` que descubra el mapping `{capítulo}-{sección}` → `articleID` necesario para construir `cmfchile.cl/portal/principal/613/articles-{ID}_doc_pdf.pdf`. **Probar primero `cronologiabancaria.cmfchile.cl/sbifweb/servlet/LeyNorma?indice=...&LNAN=1`** que parece ofrecer índice estructurado legacy SBIF; si no sirve, fallback al crawl del portal `w3-propertyvalue-28192.html` y sus sub-páginas. Output: entradas a `data/index.jsonl` con id `ran-{cap}-{sec}`.
+
+- [ ] **HdU-07c — Discovery Compendio Seguros**
+  Como dev del scraper, quiero `src/scraper/discovery/compendio_seguros.ts` que use el form `normativa.php?mercado=S` para listar normativa de seguros (incluye Compendio) y descubra la convención de paths bajo `/web/compendio/...` (ej. `/web/compendio/ncg/ncg_221_2008.pdf`). **NO** usar la página `publicaciones_compendionormas_seguros.php` porque es comercial (vende ediciones impresas). Output: entradas a `data/index.jsonl` con id `cseg-{libro}-{titulo}`.
+
+- [ ] **HdU-07d — Persistencia de `index.jsonl` y manejo de DESAPARECIDA**
+  Como dev del scraper, quiero `src/scraper/discovery/index.ts` que combine los 3 outputs anteriores en un único `data/index.jsonl`, compare contra el index de la corrida previa, y marque como `DESAPARECIDA` (sin borrar) cualquier norma ya no presente — para elevar al validador legal sin perder histórico (SCRAPER.md §4.1).
 
 - [ ] **HdU-08 — Downloader con caché y rate limit**
   Como dev del scraper, quiero `src/scraper/downloader.ts` que descargue PDFs/HTML del índice usando `undici` con `p-limit(4)`, retries exponenciales (3 intentos, base 2s), timeout 30s, User-Agent identificable y caché local en `data/raw/{id}/{fecha}.pdf` honrando `If-Modified-Since`, para no saturar a CMF ni re-descargar contenido inalterado.
 
 - [ ] **HdU-09 — Parser de PDFs**
   Como dev del scraper, quiero `src/scraper/parsers/pdf.ts` con `pdfjs-dist` como primario y `pdf-parse` como fallback (cuando el primer extract tiene >5% caracteres no imprimibles), retornando texto plano + metadata, para cubrir el 95% de PDFs CMF. Si ambos fallan, marcar `PARSE_FAIL` y abortar esa norma sin parchar (SCRAPER.md §4.3).
+  Fixtures requeridas en `tests/fixtures/pdfs/` (validadas en spike):
+  - 1 NCG modificadora corta (ej. `ncg_564_2026.pdf` — 2 páginas, sin `Artículo N`).
+  - 1 NCG sustantiva larga (ej. `ncg_221_2008.pdf` — 61 páginas, estructura completa).
+  - 1 capítulo RAN (ej. `articles-28952_doc_pdf.pdf`).
+  - 1 capítulo Compendio Seguros.
+  El parser debe detectar y separar el bloque de firma digital al final del PDF (no parsearlo como texto normativo).
 
 - [ ] **HdU-10 — Parser de HTML**
   Como dev del scraper, quiero `src/scraper/parsers/html.ts` con `cheerio` y selectores específicos por plantilla CMF, para cubrir las normas que se sirven como HTML.
 
 - [ ] **HdU-11 — Segmentador estructural**
   Como dev del scraper, quiero `src/scraper/segmenter.ts` que detecte jerarquía (`LIBRO`/`TÍTULO`/`CAPÍTULO`/`SECCIÓN`/`Artículo`/`Anexo`) con regex tolerantes y construya el árbol parent→child en `data/parsed/{normId}.json`, validando invariantes (numeración sin saltos, comillas balanceadas, tablas no perdidas, notas al pie referenciadas). Sin tree válido la norma no se carga (SCRAPER.md §4.4).
+  **Tolerancia obligatoria** (confirmada en spike): no toda NCG tiene `Artículo 1`, `Artículo 2`. Las normas modificadoras cortas tienen `1.`, `2.` como dispositivos sin jerarquía formal. El segmenter debe distinguir entre norma sustantiva (con árbol) y norma modificadora (lista plana de dispositivos), y aplicar invariantes distintos a cada una. La clasificación se infiere del header (`MODIFICA NORMA DE CARÁCTER GENERAL N°...`) o del conteo de matches del regex `^Artículo\s+\d+`.
 
 - [ ] **HdU-12 — Change detector y versionado**
   Como dev del scraper, quiero `src/scraper/changeDetector.ts` que compare `sha256` de PDF y de texto normalizado contra la última versión en DB: si solo cambió PDF (no texto) actualizar `fechaScrape`; si cambió texto, mover registro previo a `articles_history` con `validTo`, cargar nuevo como `VIGENTE`, registrar relación en `norm_relations`, y notificar al validador (SCRAPER.md §4.5).
+  **La comparación de "cambio material" se hace sobre el `sha256` del texto normalizado (post-`normalizer.ts`), nunca del PDF binario** — confirmado en spike: los PDFs de CMF traen timestamps internos (`/CreationDate`, firma digital) que cambian en cada re-export y generarían diff espurio. El hash del PDF crudo se conserva solo como evidencia de "este es el binario que descargamos".
 
 - [ ] **HdU-13 — Run logger + reporte de diff**
   Como validador, quiero que cada corrida del scraper genere `data/runs/{timestamp}.log` (JSON estructurado por evento) y `data/runs/{timestamp}_diff.md` (humano-legible: normas nuevas / modificadas / desaparecidas / parse_fail), para tener input firmable y trazabilidad por corrida.

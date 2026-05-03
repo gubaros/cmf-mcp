@@ -5,8 +5,9 @@
 
 ## Estado actual
 
-- Bootstrap pendiente (HdU-01). Existen docs (CLAUDE.md, DEVELOPER.md, SCRAPER.md, COMPLIANCE_ANALYST.md, LEGAL_VALIDATOR.md, backlog.md, testing.md), LICENSE y workflows CI; el código TypeScript aún no se escribió.
+- Bootstrap pendiente (HdU-01). Existen docs (CLAUDE.md, DEVELOPER.md, SCRAPER.md, COMPLIANCE_ANALYST.md, LEGAL_VALIDATOR.md, backlog.md, testing.md), LICENSE, workflows CI y reporte de spike `spikes/cmf_discovery.md`; el código TypeScript aún no se escribió.
 - **Monorepo:** server MCP (`src/server.ts` + `src/tools/`) y scraper (`src/scraper/`) viven en el mismo repo. **Comparten** schema Drizzle, tipos y utilidades; **nunca corren en el mismo proceso** (entry points separados: `pnpm start` vs `pnpm scrape`). El MCP no scrapea en runtime — solo lee SQLite.
+- **Spike CMF completo** (2026-05-03): URL patterns confirmados (NCG predecible, RAN requiere lookup, Compendio Seguros vía `/web/compendio/`), PDFs parsean limpio sin OCR. Detalles e impacto en HdU-07/09/11/12 documentados en [spikes/cmf_discovery.md](spikes/cmf_discovery.md).
 
 ## Stack (decidido — ver [DEVELOPER.md](DEVELOPER.md) §2)
 

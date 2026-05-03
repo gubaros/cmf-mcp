@@ -55,6 +55,7 @@ Toda extracción parte de URLs de `cmfchile.cl`. **No se usan agregadores ni cop
 - Dividido en libros romanos (I a V), títulos y capítulos.
 - Formato: PDF por capítulo o anexo.
 - **En MVP.** Volumen acotado y demanda real en el mercado asegurador chileno justifica incluirlo.
+- **Fuente de descubrimiento (confirmada en spike, ver `spikes/cmf_discovery.md` §2.4):** usar el form `cmfchile.cl/institucional/legislacion_normativa/normativa.php?mercado=S` que sí lista la normativa de seguros (incluyendo Compendio). **No** usar `publicaciones_compendionormas_seguros.php` — esa página vende ediciones impresas y no expone índice. Los PDFs en sí están bajo `/web/compendio/...` (ej. `cmfchile.cl/institucional/mercados/ver_archivo.php?archivo=/web/compendio/ncg/ncg_221_2008.pdf`).
 
 ### 3.4 Excluido del MVP
 
@@ -93,6 +94,13 @@ El índice se regenera **antes** de cada corrida. Si una norma desaparece del í
 - **User-Agent identificable:** `cmf-mcp-scraper/0.1 (+https://github.com/gubaros/cmf-mcp)`. Buena ciudadanía y margen si nos contactan.
 - **Caché local:** todos los binarios descargados van a `data/raw/{id}/{fecha}.pdf`. Nunca se redescarga si `Last-Modified` o el hash remoto no cambió. Honrar `If-Modified-Since`.
 
+**URL patterns confirmados en spike** (ver `spikes/cmf_discovery.md` §2):
+| Tipo | Pattern |
+|---|---|
+| NCG / Circulares / Resoluciones Exentas | `https://www.cmfchile.cl/normativa/{tipo}_{numero}_{año}.pdf` (predecible — no requiere lookup) |
+| RAN (Bancos) | `https://www.cmfchile.cl/portal/principal/613/articles-{ID}_doc_pdf.pdf` (el `{ID}` es interno, requiere lookup vía discovery) |
+| Compendio Seguros | `https://www.cmfchile.cl/institucional/mercados/ver_archivo.php?archivo=/web/compendio/...` |
+
 ### 4.3 Parsing
 
 Pipeline por tipo de fuente:
@@ -106,6 +114,14 @@ Pipeline por tipo de fuente:
 ### 4.4 Segmentación estructural
 
 La parte difícil y donde se concentra el valor. **Texto plano no sirve** — hay que segmentar.
+
+**Tolerancia obligatoria (confirmada en spike, ver `spikes/cmf_discovery.md` §3):** no toda NCG tiene árbol jerárquico clásico. Las normas modificadoras cortas (ej. NCG 564) tienen `1.`, `2.` como dispositivos planos sin `Artículo N`. El segmenter debe distinguir entre:
+- **Norma sustantiva** (con árbol Libro → Título → Capítulo → Sección → Artículo / Anexo) — aplican todos los invariantes.
+- **Norma modificadora** (lista plana de dispositivos numerados) — invariantes reducidos: solo balanceo de comillas y referencias cruzadas a la norma modificada.
+
+La clasificación se infiere del header (`MODIFICA NORMA DE CARÁCTER GENERAL N°...`) o del conteo de matches del regex `^Artículo\s+\d+` (≥3 matches → sustantiva).
+
+Adicionalmente, **detectar y separar el bloque de firma digital al final del PDF** (firma del/la presidente/a CMF + timestamp). No parsearlo como texto normativo.
 
 1. **Detectar nivel jerárquico** con regex tolerante:
    - `^(LIBRO|TÍTULO|CAPÍTULO|SECCIÓN)\s+([IVXLCDM]+|\d+)`
