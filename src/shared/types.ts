@@ -6,7 +6,7 @@ export type IndexEntry = {
   numero: string;
   titulo: string;
   sector: Sector;
-  fechaEmision: string;
+  fechaEmision: string | null;
   estado: EstadoVigencia;
   urlPdf: string;
   modifica: string[];
