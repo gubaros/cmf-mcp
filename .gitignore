@@ -1,0 +1,20 @@
+node_modules/
+dist/
+data/
+
+# SQLite
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Env
+.env
+.env.local
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/settings.json
+.idea/
