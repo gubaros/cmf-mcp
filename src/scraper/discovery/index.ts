@@ -2,6 +2,7 @@ import { createWriteStream } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { IndexEntry } from "../../shared/types";
+import { jitter } from "../http";
 import { fetchCompendioSeguros } from "./compendio_seguros";
 import { fetchNormativa2 } from "./normativa2";
 import { fetchRan } from "./ran";
@@ -46,10 +47,12 @@ export async function runDiscovery(outputPath = INDEX_PATH): Promise<DiscoverySt
     for (const tipo of TIPOS_NORMATIVA2) {
       const batch = await fetchNormativa2(tipo, mercado);
       normativa2Entries.push(...batch);
+      await jitter(800, 2_000);
     }
   }
 
   const ranEntries = await fetchRan();
+  await jitter(800, 2_000);
   const compendioEntries = await fetchCompendioSeguros();
 
   const all = dedup([...normativa2Entries, ...ranEntries, ...compendioEntries]);

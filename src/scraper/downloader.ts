@@ -6,6 +6,7 @@ import pLimit from "p-limit";
 import { request } from "undici";
 import type { IndexEntry } from "../shared/types";
 import { fetchRanFromSeed } from "./discovery/ran";
+import { BROWSER_HEADERS, CMF_DISPATCHER } from "./http";
 
 const RAW_DIR = resolve("data/raw");
 const INDEX_PATH = resolve("data/index.jsonl");
@@ -13,8 +14,6 @@ const CONCURRENCY = 4;
 const TIMEOUT_MS = 30_000;
 const RETRY_ATTEMPTS = 3;
 const RETRY_BASE_MS = 2_000;
-const USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 export type DownloadResult = {
   id: string;
@@ -66,7 +65,11 @@ async function downloadOne(id: string, url: string): Promise<DownloadResult> {
   await mkdir(dir, { recursive: true });
 
   const cache = await loadCacheState(id);
-  const headers: Record<string, string> = { "User-Agent": USER_AGENT };
+  const headers: Record<string, string> = {
+    ...BROWSER_HEADERS,
+    Accept: "application/pdf,*/*;q=0.8",
+    Referer: "https://www.cmfchile.cl/institucional/legislacion_normativa/normativa2.php",
+  };
   if (cache.lastModified) headers["If-Modified-Since"] = cache.lastModified;
   if (cache.etag) headers["If-None-Match"] = cache.etag;
 
@@ -86,6 +89,7 @@ async function downloadOne(id: string, url: string): Promise<DownloadResult> {
         headers,
         bodyTimeout: TIMEOUT_MS,
         headersTimeout: TIMEOUT_MS,
+        dispatcher: CMF_DISPATCHER,
       });
       statusCode = res.statusCode;
       body = res.body as typeof body;

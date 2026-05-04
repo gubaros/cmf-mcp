@@ -1,14 +1,12 @@
 import * as cheerio from "cheerio";
-import { Agent, request } from "undici";
+import { request } from "undici";
 import { EstadoVigencia, Sector, TipoNorma } from "../../shared/enums";
-
-const DISPATCHER = new Agent({ connect: { timeout: 30_000 } });
 import type { IndexEntry } from "../../shared/types";
+import { BROWSER_HEADERS, CMF_DISPATCHER } from "../http";
 
 const INDEX_URL =
   "https://www.cmfchile.cl/institucional/mercados/publicaciones_compendionormas_seguros.php";
 const PDF_WRAPPER = "https://www.cmfchile.cl/institucional/mercados/ver_archivo.php?archivo=";
-const USER_AGENT = "cmf-mcp/0.1 (+https://github.com/gubaros/cmf-mcp)";
 
 // Matches: ver_archivo.php?archivo=/web/compendio/...  (relative or absolute)
 const RE_COMPENDIO_HREF = /ver_archivo\.php\?archivo=(\/web\/compendio\/[^"'\s&]+)/i;
@@ -80,10 +78,13 @@ export function parseCompendioHtml(html: string): IndexEntry[] {
 
 export async function fetchCompendioSeguros(): Promise<IndexEntry[]> {
   const { body, statusCode } = await request(INDEX_URL, {
-    headers: { "User-Agent": USER_AGENT },
+    headers: {
+      ...BROWSER_HEADERS,
+      Referer: "https://www.cmfchile.cl/institucional/mercados/",
+    },
     headersTimeout: 30_000,
     bodyTimeout: 30_000,
-    dispatcher: DISPATCHER,
+    dispatcher: CMF_DISPATCHER,
   });
 
   if (statusCode !== 200) {

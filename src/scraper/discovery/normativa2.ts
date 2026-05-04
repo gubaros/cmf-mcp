@@ -1,12 +1,10 @@
 import * as cheerio from "cheerio";
-import { Agent, request } from "undici";
+import { request } from "undici";
 import { EstadoVigencia, Sector, TipoNorma } from "../../shared/enums";
 import type { IndexEntry } from "../../shared/types";
-
-const DISPATCHER = new Agent({ connect: { timeout: 30_000 } });
+import { BROWSER_HEADERS, CMF_DISPATCHER } from "../http";
 
 const BASE_URL = "https://www.cmfchile.cl/institucional/legislacion_normativa/normativa2.php";
-const USER_AGENT = "cmf-mcp/0.1 (+https://github.com/gubaros/cmf-mcp)";
 
 export type TipoForm = "NCG" | "CIR" | "OFC";
 export type Mercado = "V" | "S";
@@ -161,10 +159,13 @@ export async function fetchNormativa2(
   });
 
   const { body, statusCode } = await request(`${BASE_URL}?${params}`, {
-    headers: { "User-Agent": USER_AGENT },
+    headers: {
+      ...BROWSER_HEADERS,
+      Referer: "https://www.cmfchile.cl/institucional/legislacion_normativa/normativa2.php",
+    },
     headersTimeout: 30_000,
     bodyTimeout: 30_000,
-    dispatcher: DISPATCHER,
+    dispatcher: CMF_DISPATCHER,
   });
 
   if (statusCode !== 200) {

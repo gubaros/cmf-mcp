@@ -1,16 +1,14 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { Agent, request } from "undici";
+import { request } from "undici";
 import { EstadoVigencia, Sector, TipoNorma } from "../../shared/enums";
 import type { IndexEntry } from "../../shared/types";
-
-const DISPATCHER = new Agent({ connect: { timeout: 30_000 } });
+import { BROWSER_HEADERS, CMF_DISPATCHER } from "../http";
 
 // Verified 2026-05-04 — source: w3-propertyvalue-29580.html
 const SEED_PATH = resolve(__dirname, "ran_seed.json");
 const PORTAL_URL = "https://www.cmfchile.cl/portal/principal/613/w3-propertyvalue-29580.html";
 const PDF_BASE = "https://www.cmfchile.cl/portal/principal/613/";
-const USER_AGENT = "cmf-mcp/0.1 (+https://github.com/gubaros/cmf-mcp)";
 const MIN_CHAPTERS = 90; // abort threshold — real count is 98
 
 type SeedChapter = { id: string; cap: string; articleId: string; titulo: string };
@@ -80,14 +78,12 @@ export function fetchRanFromSeed(seedPath = SEED_PATH): IndexEntry[] {
 export async function fetchRanLive(): Promise<SeedChapter[]> {
   const { body, statusCode } = await request(PORTAL_URL, {
     headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      Accept: "text/html,application/xhtml+xml,*/*;q=0.8",
-      "Accept-Language": "es-CL,es;q=0.9",
+      ...BROWSER_HEADERS,
+      Referer: "https://www.cmfchile.cl/portal/principal/613/index.html",
     },
     headersTimeout: 30_000,
     bodyTimeout: 30_000,
-    dispatcher: DISPATCHER,
+    dispatcher: CMF_DISPATCHER,
   });
 
   if (statusCode !== 200) {

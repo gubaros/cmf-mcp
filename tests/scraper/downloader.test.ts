@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("undici", () => ({
-  request: vi.fn(),
-}));
+vi.mock("undici", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("undici")>();
+  return { ...actual, request: vi.fn() };
+});
 
 vi.mock("../../src/scraper/discovery/ran", () => ({
   fetchRanFromSeed: vi.fn(),

@@ -6,6 +6,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../../src/scraper/discovery/normativa2");
 vi.mock("../../../src/scraper/discovery/ran");
 vi.mock("../../../src/scraper/discovery/compendio_seguros");
+vi.mock("../../../src/scraper/http", () => ({
+  jitter: vi.fn().mockResolvedValue(undefined),
+}));
 
 import { fetchCompendioSeguros } from "../../../src/scraper/discovery/compendio_seguros";
 import { runDiscovery } from "../../../src/scraper/discovery/index";
