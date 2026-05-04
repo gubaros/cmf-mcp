@@ -115,8 +115,22 @@ async function downloadOne(id: string, url: string): Promise<DownloadResult> {
     const fecha = new Date().toISOString().slice(0, 10);
     const dest = pdfPath(id, fecha);
 
+    let buf: ArrayBuffer;
     try {
-      const buf = await body.arrayBuffer();
+      buf = await body.arrayBuffer();
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+      continue;
+    }
+
+    // Validate PDF magic bytes — server can return 200 with a WAF error page
+    const magic = Buffer.from(buf).slice(0, 4).toString("ascii");
+    if (!magic.startsWith("%PDF")) {
+      lastError = `Respuesta no es un PDF (magic: ${JSON.stringify(magic)})`;
+      continue;
+    }
+
+    try {
       await writeFile(dest, Buffer.from(buf));
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
