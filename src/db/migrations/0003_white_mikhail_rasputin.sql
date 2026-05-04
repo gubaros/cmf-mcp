@@ -1,0 +1,1 @@
+CREATE INDEX `norms_fecha_scrape_idx` ON `norms` (`fecha_scrape`);

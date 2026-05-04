@@ -20,7 +20,6 @@ export type SearchHit = {
 
 export type SearchArticlesResult = {
   items: SearchHit[];
-  total: number;
 };
 
 export async function searchArticlesHandler(
@@ -61,16 +60,6 @@ export async function searchArticlesHandler(
     LIMIT ${lim}
   `);
 
-  // Total count (no LIMIT)
-  const [countRow] = db.all<{ n: number }>(sql`
-    SELECT COUNT(*) AS n
-    FROM articles_fts f
-    JOIN articles a ON a.id = f.id
-    WHERE articles_fts MATCH ${input.q}
-      AND a.estado = ${estado}
-      ${sql.raw(sectorFilter)}
-  `);
-
   return {
     items: rows.map((r) => ({
       articleId: r.article_id,
@@ -81,6 +70,5 @@ export async function searchArticlesHandler(
       sector: r.sector,
       urlOficial: r.url_oficial,
     })),
-    total: countRow?.n ?? 0,
   };
 }

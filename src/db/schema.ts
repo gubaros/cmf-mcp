@@ -22,6 +22,8 @@ export const norms = sqliteTable(
     // list_norms: WHERE estado [AND tipo] [AND sector] — cubre todas las combinaciones de filtro
     // server_info: WHERE estado = 'VIGENTE' GROUP BY sector
     index("norms_estado_tipo_sector_idx").on(t.estado, t.tipo, t.sector),
+    // server_info: SELECT MAX(fecha_scrape) — evita full scan
+    index("norms_fecha_scrape_idx").on(t.fechaScrape),
   ],
 );
 
