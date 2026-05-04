@@ -1,10 +1,12 @@
 import { mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
 
-const DB_PATH = resolve(process.env.CMF_DB_PATH ?? "data/cmf_norms.db");
+export const DATA_DIR = process.env.CMF_DATA_DIR ?? join(homedir(), ".cmf-mcp");
+export const DB_PATH = process.env.CMF_DB_PATH ?? join(DATA_DIR, "cmf_norms.db");
 
 let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 
