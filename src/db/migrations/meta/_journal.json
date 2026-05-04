@@ -15,6 +15,13 @@
       "when": 1777845995311,
       "tag": "0001_fts5",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1777926478795,
+      "tag": "0002_motionless_valeria_richards",
+      "breakpoints": true
     }
   ]
 }
