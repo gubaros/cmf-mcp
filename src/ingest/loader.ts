@@ -75,22 +75,22 @@ async function ingestOne(
 
   const now = new Date().toISOString().slice(0, 10);
 
-  db.insert(norms)
-    .values({
-      id: entry.id,
-      tipo: entry.tipo,
-      numero: entry.numero,
-      titulo: entry.titulo,
-      sector: entry.sector,
-      fechaEmision: entry.fechaEmision ?? "",
-      estado: entry.estado,
-      urlOficial: entry.urlPdf,
-      hashContenido: pdfHash,
-      fechaScrape: now,
-    })
-    .run();
+  db.transaction(() => {
+    db.insert(norms)
+      .values({
+        id: entry.id,
+        tipo: entry.tipo,
+        numero: entry.numero,
+        titulo: entry.titulo,
+        sector: entry.sector,
+        fechaEmision: entry.fechaEmision ?? "",
+        estado: entry.estado,
+        urlOficial: entry.urlPdf,
+        hashContenido: pdfHash,
+        fechaScrape: now,
+      })
+      .run();
 
-  if (segs.length > 0) {
     for (const art of segs) {
       db.insert(articles)
         .values({
@@ -108,7 +108,7 @@ async function ingestOne(
         })
         .run();
     }
-  }
+  });
 
   return { status: "inserted", method: parseResult.method };
 }
