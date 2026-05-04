@@ -45,7 +45,7 @@ export async function serverInfoHandler(_input: Record<string, never>): Promise<
     }
 
     return {
-      version: "0.0.1",
+      version: "0.1.0",
       repoUrl: "https://github.com/gubaros/cmf-mcp",
       totalNormas: totalRow?.value ?? 0,
       porSector,
@@ -54,7 +54,7 @@ export async function serverInfoHandler(_input: Record<string, never>): Promise<
     };
   } catch {
     return {
-      version: "0.0.1",
+      version: "0.1.0",
       repoUrl: "https://github.com/gubaros/cmf-mcp",
       totalNormas: 0,
       porSector: {},

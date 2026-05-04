@@ -42,7 +42,7 @@ describe("serverInfoHandler", () => {
     expect(result.porSector).toEqual({});
     expect(result.ultimoScrape).toBeNull();
     expect(result.normasValidadas).toBe(0);
-    expect(result.version).toBe("0.0.1");
+    expect(result.version).toBe("0.1.0");
     expect(result.repoUrl).toBe("https://github.com/gubaros/cmf-mcp");
   });
 

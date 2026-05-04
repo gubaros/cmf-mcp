@@ -199,11 +199,13 @@
 
 ### Distribución
 
-- [ ] **HdU-28 — README de uso para Claude Desktop**
+- [x] **HdU-28 — README de uso para Claude Desktop**
   Como usuario externo, quiero instrucciones claras de configuración en `claude_desktop_config.json` (DEVELOPER.md §6) y dónde descargar la `.db`, para tener el MCP corriendo en menos de 10 minutos. Incluye sección sobre dónde encontrar los logs locales y cómo interpretarlos.
 
 - [ ] **HdU-29 — Release v0.1 con `cmf_norms.db`**
   Como mantenedor, quiero un GitHub Release `v0.1` con `cmf_norms.db` adjunto, SHA256 publicado en notas y tag separado del corpus (`corpus-2026.MM.DD` distinto del tag de código `v0.1.0`), para distribuir sin que el usuario corra el scraper.
+
+  ⚠️ _Bloqueado: ingest corriendo (~1200/3960 normas al 2026-05-04). Ejecutar `bash scripts/release.sh` cuando termine._
 
 ---
 
