@@ -1,6 +1,10 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { ingestAll } from "../ingest/loader";
 import { runDiscovery } from "../scraper/discovery/index";
 import { downloadAll, downloadRanBulk } from "../scraper/downloader";
 import type { DownloadResult } from "../scraper/downloader";
+import type { IndexEntry } from "../shared/types";
 
 async function main() {
   console.log("[scrape] Fase 1: discovery...");
@@ -18,6 +22,26 @@ async function main() {
   console.log("[scrape] Fase 3: download resto del índice (NCG/CIR/OFC/Compendio)...");
   const allResults = await downloadAll();
   summarize("downloadAll", allResults);
+
+  console.log("[scrape] Fase 4: ingest PDF → SQLite...");
+  const indexPath = resolve("data/index.jsonl");
+  let entries: IndexEntry[] = [];
+  try {
+    entries = readFileSync(indexPath, "utf8")
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as IndexEntry);
+  } catch {
+    console.warn("[scrape] No se pudo leer data/index.jsonl — saltando ingest");
+  }
+  if (entries.length > 0) {
+    const ingestStats = await ingestAll(entries);
+    console.log(
+      `[scrape] Ingest: total=${ingestStats.total} inserted=${ingestStats.inserted} ` +
+        `skipped=${ingestStats.skipped} errors=${ingestStats.errors} ` +
+        `(native=${ingestStats.byMethod.native} ocr=${ingestStats.byMethod.ocr})`,
+    );
+  }
 
   console.log("[scrape] Listo.");
 }
