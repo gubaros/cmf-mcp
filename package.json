@@ -14,6 +14,7 @@
   "scripts": {
     "start": "tsx src/server.ts",
     "scrape": "tsx src/cli/scrape.ts",
+    "discover": "tsx src/cli/discover.ts",
     "ingest": "tsx src/cli/ingest.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
