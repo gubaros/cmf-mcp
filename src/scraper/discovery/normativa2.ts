@@ -175,6 +175,13 @@ export async function fetchNormativa2(
     }
 
     const html = await body.text();
-    return parseNormativa2Html(html, tiponorma, mercado);
+    const entries = parseNormativa2Html(html, tiponorma, mercado);
+    if (entries.length === 0) {
+      console.warn(
+        `[normativa2] ${tiponorma}/${mercado}: 0 entradas (${html.length} bytes). ` +
+          `Primeros 200 chars: ${html.slice(0, 200).replace(/\s+/g, " ")}`,
+      );
+    }
+    return entries;
   });
 }
