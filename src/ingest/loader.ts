@@ -127,11 +127,26 @@ export async function ingestAll(entries: IndexEntry[]): Promise<IngestStats> {
     byMethod: { native: 0, ocr: 0 },
   };
 
+  let done = 0;
+  const total = entries.length;
+  const tick = () => {
+    done++;
+    if (done % 50 === 0 || done === total) {
+      process.stdout.write(`\r[ingest] ${done}/${total} procesadas...`);
+    }
+  };
+
   const results = await Promise.all(
     entries.map((e, i) =>
-      limit(() => ingestOne(e, db).then((r) => ({ ...r, id: entries[i]?.id ?? "" }))),
+      limit(() =>
+        ingestOne(e, db).then((r) => {
+          tick();
+          return { ...r, id: entries[i]?.id ?? "" };
+        }),
+      ),
     ),
   );
+  process.stdout.write("\n");
 
   for (const r of results) {
     if (r.status === "inserted") {
