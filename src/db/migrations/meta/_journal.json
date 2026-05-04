@@ -22,6 +22,13 @@
       "when": 1777926478795,
       "tag": "0002_motionless_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1777926976158,
+      "tag": "0003_white_mikhail_rasputin",
+      "breakpoints": true
     }
   ]
 }
