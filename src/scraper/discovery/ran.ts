@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { request } from "undici";
+import { Agent, request } from "undici";
 import { EstadoVigencia, Sector, TipoNorma } from "../../shared/enums";
 import type { IndexEntry } from "../../shared/types";
+
+const DISPATCHER = new Agent({ connect: { timeout: 30_000 } });
 
 // Verified 2026-05-04 — source: w3-propertyvalue-29580.html
 const SEED_PATH = resolve(__dirname, "ran_seed.json");
@@ -83,6 +85,9 @@ export async function fetchRanLive(): Promise<SeedChapter[]> {
       Accept: "text/html,application/xhtml+xml,*/*;q=0.8",
       "Accept-Language": "es-CL,es;q=0.9",
     },
+    headersTimeout: 30_000,
+    bodyTimeout: 30_000,
+    dispatcher: DISPATCHER,
   });
 
   if (statusCode !== 200) {

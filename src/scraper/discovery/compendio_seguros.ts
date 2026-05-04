@@ -1,6 +1,8 @@
 import * as cheerio from "cheerio";
-import { request } from "undici";
+import { Agent, request } from "undici";
 import { EstadoVigencia, Sector, TipoNorma } from "../../shared/enums";
+
+const DISPATCHER = new Agent({ connect: { timeout: 30_000 } });
 import type { IndexEntry } from "../../shared/types";
 
 const INDEX_URL =
@@ -79,6 +81,9 @@ export function parseCompendioHtml(html: string): IndexEntry[] {
 export async function fetchCompendioSeguros(): Promise<IndexEntry[]> {
   const { body, statusCode } = await request(INDEX_URL, {
     headers: { "User-Agent": USER_AGENT },
+    headersTimeout: 30_000,
+    bodyTimeout: 30_000,
+    dispatcher: DISPATCHER,
   });
 
   if (statusCode !== 200) {
