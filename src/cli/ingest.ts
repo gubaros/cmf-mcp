@@ -19,7 +19,7 @@ async function main() {
   console.log(`[ingest] ${entries.length} entradas en el índice`);
   const stats = await ingestAll(entries);
   console.log(
-    `[ingest] Listo: inserted=${stats.inserted} skipped=${stats.skipped} errors=${stats.errors} ` +
+    `[ingest] Listo: inserted=${stats.inserted} updated=${stats.updated} skipped=${stats.skipped} errors=${stats.errors} ` +
       `(native=${stats.byMethod.native} ocr=${stats.byMethod.ocr})`,
   );
   for (const e of stats.errorList) {
