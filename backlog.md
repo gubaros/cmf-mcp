@@ -113,6 +113,13 @@
 - [ ] **HdU-08 — Downloader con caché y rate limit**
   Como dev del scraper, quiero `src/scraper/downloader.ts` que descargue PDFs/HTML del índice usando `undici` con `p-limit(4)`, retries exponenciales (3 intentos, base 2s), timeout 30s, User-Agent identificable y caché local en `data/raw/{id}/{fecha}.pdf` honrando `If-Modified-Since`, para no saturar a CMF ni re-descargar contenido inalterado.
 
+  **Comportamiento especial para RAN:** dado que los 98 capítulos del RAN cambian infrecuentemente (actualizaciones via Circular, no por reemplazo del índice), el downloader debe ofrecer un modo **bulk RAN** que descarga todos los capítulos del seed de una vez en la primera corrida. En corridas subsiguientes, verifica `If-Modified-Since` o `ETag` y re-descarga solo los modificados. Esto asegura que el corpus RAN completo esté disponible localmente antes de que arranque el parser, sin depender de corridas parciales.
+
+  **Modos de operación:**
+  - `downloadAll(entries)` — descarga lista completa desde `index.jsonl`; usado por el CLI en corrida normal.
+  - `downloadRanBulk()` — descarga todos los capítulos del seed RAN directamente, sin necesitar `index.jsonl`. Útil para bootstrap inicial y para `pnpm scrape:verify-ran`.
+  - Ambos modos usan el mismo caché `data/raw/{id}/{fechaDescarga}.pdf` y la misma lógica de retry/rate-limit.
+
 - [ ] **HdU-09 — Parser de PDFs**
   Como dev del scraper, quiero `src/scraper/parsers/pdf.ts` con `pdfjs-dist` como primario y `pdf-parse` como fallback (cuando el primer extract tiene >5% caracteres no imprimibles), retornando texto plano + metadata, para cubrir el 95% de PDFs CMF. Si ambos fallan, marcar `PARSE_FAIL` y abortar esa norma sin parchar (SCRAPER.md §4.3).
   Fixtures requeridas en `tests/fixtures/pdfs/` (validadas en spike):
