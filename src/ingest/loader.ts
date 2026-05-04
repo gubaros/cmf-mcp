@@ -106,6 +106,7 @@ async function ingestOne(
           hashContenido: art.hashContenido,
           fechaUltimaModificacion: now,
         })
+        .onConflictDoNothing()
         .run();
     }
   });

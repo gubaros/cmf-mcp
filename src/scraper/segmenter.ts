@@ -90,12 +90,17 @@ export function segmentNorm(normId: string, rawText: string): SegmentResult {
   const segments =
     mode === "substantive" ? splitOnArticulos(rawText) : splitOnDispositivos(rawText);
 
+  const seen = new Set<string>();
   const articles: Article[] = segments
     .filter((s) => s.body.length > 0)
     .map((s, i) => {
       const texto = s.body;
+      // Disambiguate repeated article numbers (e.g. OCR misreads) by appending order
+      let id = buildId(normId, s.numero);
+      if (seen.has(id)) id = `${id}-${i + 1}`;
+      seen.add(id);
       return {
-        id: buildId(normId, s.numero),
+        id,
         normId,
         numero: s.numero,
         rubrica: s.rubrica,
