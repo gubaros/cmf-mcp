@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import pLimit from "p-limit";
 import { getDb } from "../db/client";
 import { articles, norms } from "../db/schema";
+import { applyNormUpdate } from "../scraper/changeDetector";
 import { parsePdf } from "../scraper/parsers/pdf";
 import { segmentNorm } from "../scraper/segmenter";
 import type { IndexEntry } from "../shared/types";
@@ -12,6 +13,7 @@ import type { IndexEntry } from "../shared/types";
 export type IngestStats = {
   total: number;
   inserted: number;
+  updated: number;
   skipped: number;
   errors: number;
   errorList: Array<{ id: string; error: string }>;
@@ -48,21 +50,14 @@ async function ingestOne(
   entry: IndexEntry,
   db: ReturnType<typeof getDb>,
 ): Promise<{
-  status: "inserted" | "skipped" | "error";
+  status: "inserted" | "updated" | "skipped" | "error";
   method?: "native" | "ocr";
   error?: string;
 }> {
   const pdfPath = findLatestPdf(entry.id);
   if (!pdfPath) return { status: "skipped" };
 
-  const existing = db.select({ id: norms.id }).from(norms).where(eq(norms.id, entry.id)).get();
   const pdfBuf = readFileSync(pdfPath);
-  const pdfHash = createHash("sha256").update(pdfBuf).digest("hex");
-
-  if (existing) {
-    // Already loaded — skip unless hash changed (handled by change detector, not here)
-    return { status: "skipped" };
-  }
 
   let parseResult: Awaited<ReturnType<typeof parsePdf>>;
   try {
@@ -72,9 +67,28 @@ async function ingestOne(
   }
 
   const normalizedText = normalize(parseResult.text);
+  const textHash = createHash("sha256").update(normalizedText).digest("hex");
   const { articles: segs } = segmentNorm(entry.id, normalizedText);
-
   const now = new Date().toISOString().slice(0, 10);
+
+  const existing = db
+    .select({ hashContenido: norms.hashContenido, fechaScrape: norms.fechaScrape })
+    .from(norms)
+    .where(eq(norms.id, entry.id))
+    .get();
+
+  if (existing) {
+    const result = applyNormUpdate(
+      entry.id,
+      existing.hashContenido,
+      existing.fechaScrape,
+      textHash,
+      segs,
+      db,
+      now,
+    );
+    return { status: result === "unchanged" ? "skipped" : "updated", method: parseResult.method };
+  }
 
   db.transaction(() => {
     db.insert(norms)
@@ -87,7 +101,7 @@ async function ingestOne(
         fechaEmision: entry.fechaEmision ?? "",
         estado: entry.estado,
         urlOficial: entry.urlPdf,
-        hashContenido: pdfHash,
+        hashContenido: textHash,
         fechaScrape: now,
       })
       .run();
@@ -121,6 +135,7 @@ export async function ingestAll(entries: IndexEntry[]): Promise<IngestStats> {
   const stats: IngestStats = {
     total: entries.length,
     inserted: 0,
+    updated: 0,
     skipped: 0,
     errors: 0,
     errorList: [],
@@ -151,6 +166,9 @@ export async function ingestAll(entries: IndexEntry[]): Promise<IngestStats> {
   for (const r of results) {
     if (r.status === "inserted") {
       stats.inserted++;
+      if (r.method) stats.byMethod[r.method]++;
+    } else if (r.status === "updated") {
+      stats.updated++;
       if (r.method) stats.byMethod[r.method]++;
     } else if (r.status === "skipped") {
       stats.skipped++;
