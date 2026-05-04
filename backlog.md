@@ -32,24 +32,24 @@
 
 ### Infra y bootstrap
 
-- [ ] **HdU-01 — Bootstrap del proyecto**
+- [x] **HdU-01 — Bootstrap del proyecto**
   Como dev, quiero `package.json`, `tsconfig.json` estricto, `biome.json`, `vitest.config.ts`, `tsup.config.ts` y `.gitignore` (excluyendo `data/`, `dist/`, `node_modules/`) listos, para poder ejecutar `pnpm install && pnpm typecheck && pnpm lint && pnpm test` sin errores en un repo vacío. Scripts incluidos: `start` (MCP server), `scrape` (entry del scraper), `db:generate`, `db:migrate`.
 
-- [ ] **HdU-02 — Setup Drizzle + better-sqlite3**
+- [x] **HdU-02 — Setup Drizzle + better-sqlite3**
   Como dev, quiero `drizzle.config.ts`, `src/db/client.ts` (singleton de `better-sqlite3`) y scripts `pnpm db:generate` / `pnpm db:migrate`, para poder generar y aplicar migraciones contra `data/cmf_norms.db`.
 
-- [ ] **HdU-03 — Schema Drizzle (tablas core)**
+- [x] **HdU-03 — Schema Drizzle (tablas core)**
   Como dev, quiero `src/db/schema.ts` con `norms`, `sections`, `articles`, `articles_history`, `norm_relations`, `validation_log` siguiendo DEVELOPER.md §4, para que server y scraper compartan una única fuente de verdad tipada.
 
-- [ ] **HdU-04 — Migración FTS5 manual**
+- [x] **HdU-04 — Migración FTS5 manual**
   Como dev, quiero una migración SQL cruda que cree `articles_fts` (`tokenize='unicode61 remove_diacritics 2'`) con triggers `AFTER INSERT/UPDATE/DELETE` sobre `articles`, para que la búsqueda full-text esté siempre sincronizada.
 
-- [ ] **HdU-05 — MCP server stdio esqueleto**
+- [x] **HdU-05 — MCP server stdio esqueleto**
   Como dev, quiero `src/server.ts` que arranque el MCP SDK por stdio sin tools registradas, para validar la integración con Claude Desktop antes de implementar tools.
 
 ### Trazabilidad
 
-- [ ] **HdU-06 — Logging estructurado y audit trail (BLOQUEANTE para tools)**
+- [x] **HdU-06 — Logging estructurado y audit trail (BLOQUEANTE para tools)**
   Como auditor/validador, quiero que **cada llamada a una tool** quede registrada con: `timestamp`, `requestId` (uuid), `tool`, `input` (sanitizado), `normIds` y `articleIds` retornados, `urlOficial` de cada cita, `latencyMs`, `result` (`OK`/`ERROR`+código), y versión del corpus servida. Para que toda respuesta del MCP sea reconstruible y auditable hasta CMF (regla de oro #1).
   Criterios:
   - Formato JSON line-per-event a `data/logs/{YYYY-MM-DD}.jsonl` con rotación diaria.
@@ -65,10 +65,10 @@
 
 > **HdU-07 — Discovery (subdividida tras spike — ver `spikes/cmf_discovery.md` §2 y §5).** El sitio CMF tiene 3 fuentes con patterns distintos; conviene un módulo por fuente que escriben al mismo `data/index.jsonl`. El umbrella entry de `discovery.ts` solo orquesta los 3.
 
-- [ ] **HdU-07a — Discovery NCG / Circulares / Oficios Circulares vía form `normativa2.php`**
+- [x] **HdU-07a — Discovery NCG / Circulares / Oficios Circulares vía form `normativa2.php`**
   Como dev del scraper, quiero `src/scraper/discovery/normativa2.ts` que itere `hidden_mercado=V` y `hidden_mercado=S` (mercados Valores y Seguros) sobre el form `normativa2.php`, parsee la tabla con `cheerio` (columnas: tipo, número, fecha, título, modifica/modificada-por, deroga/derogada-por, vigencia) y emita entradas a `data/index.jsonl` con `urlPdf` construida según `cmfchile.cl/normativa/{tipo}_{numero}_{año}.pdf`. Se aprovecha que el form devuelve casi todo el modelo de `norms` + `norm_relations` en una pasada.
 
-- [ ] **HdU-07b — Discovery RAN (Bancos)** ⚠️ _Código existente incompleto — requiere rework antes de HdU-08_
+- [x] **HdU-07b — Discovery RAN (Bancos)** ~~⚠️ _Código existente incompleto — requiere rework antes de HdU-08_~~
   Como dev del scraper, quiero `src/scraper/discovery/ran.ts` que produzca el **índice completo** de capítulos/secciones vigentes del RAN, no solo los que aparezcan en la página de entrada del portal.
 
   **Defecto en la implementación actual:** `ran.ts` busca links `w3-article-{ID}.html` en `w3-propertyvalue-28192.html`. El spike confirmó que esa página *no lista los capítulos* — es navegacional, no un índice. En producción la implementación actual devuelve cero o muy pocos capítulos, rompiendo el DoD.
@@ -82,10 +82,10 @@
 
   Output: entradas a `data/index.jsonl` con id `ran-{cap}-{sec}`, sector `BANCARIO`.
 
-- [ ] **HdU-07c — Discovery Compendio Seguros**
+- [x] **HdU-07c — Discovery Compendio Seguros**
   Como dev del scraper, quiero `src/scraper/discovery/compendio_seguros.ts` que use el form `normativa.php?mercado=S` para listar normativa de seguros (incluye Compendio) y descubra la convención de paths bajo `/web/compendio/...` (ej. `/web/compendio/ncg/ncg_221_2008.pdf`). **NO** usar la página `publicaciones_compendionormas_seguros.php` porque es comercial (vende ediciones impresas). Output: entradas a `data/index.jsonl` con id `cseg-{libro}-{titulo}`.
 
-- [ ] **HdU-07d — Persistencia de `index.jsonl` y manejo de DESAPARECIDA**
+- [x] **HdU-07d — Persistencia de `index.jsonl` y manejo de DESAPARECIDA**
   Como dev del scraper, quiero `src/scraper/discovery/index.ts` que combine los 3 outputs anteriores en un único `data/index.jsonl`, compare contra el index de la corrida previa, y marque como `DESAPARECIDA` (sin borrar) cualquier norma ya no presente — para elevar al validador legal sin perder histórico (SCRAPER.md §4.1).
 
 - [ ] **HdU-07e — Completitud del corpus: umbrales, verificación y gate de corrida**
@@ -110,7 +110,7 @@
   - Primera corrida sin baseline → registra baseline y continúa.
   - Counts sobre umbral → escribe JSONL completo sin error.
 
-- [ ] **HdU-08 — Downloader con caché y rate limit**
+- [x] **HdU-08 — Downloader con caché y rate limit**
   Como dev del scraper, quiero `src/scraper/downloader.ts` que descargue PDFs/HTML del índice usando `undici` con `p-limit(4)`, retries exponenciales (3 intentos, base 2s), timeout 30s, User-Agent identificable y caché local en `data/raw/{id}/{fecha}.pdf` honrando `If-Modified-Since`, para no saturar a CMF ni re-descargar contenido inalterado.
 
   **Comportamiento especial para RAN:** dado que los 98 capítulos del RAN cambian infrecuentemente (actualizaciones via Circular, no por reemplazo del índice), el downloader debe ofrecer un modo **bulk RAN** que descarga todos los capítulos del seed de una vez en la primera corrida. En corridas subsiguientes, verifica `If-Modified-Since` o `ETag` y re-descarga solo los modificados. Esto asegura que el corpus RAN completo esté disponible localmente antes de que arranque el parser, sin depender de corridas parciales.
@@ -120,7 +120,7 @@
   - `downloadRanBulk()` — descarga todos los capítulos del seed RAN directamente, sin necesitar `index.jsonl`. Útil para bootstrap inicial y para `pnpm scrape:verify-ran`.
   - Ambos modos usan el mismo caché `data/raw/{id}/{fechaDescarga}.pdf` y la misma lógica de retry/rate-limit.
 
-- [ ] **HdU-09 — Parser de PDFs**
+- [x] **HdU-09 — Parser de PDFs**
   Como dev del scraper, quiero `src/scraper/parsers/pdf.ts` con `pdfjs-dist` como primario y `pdf-parse` como fallback (cuando el primer extract tiene >5% caracteres no imprimibles), retornando texto plano + metadata, para cubrir el 95% de PDFs CMF. Si ambos fallan, marcar `PARSE_FAIL` y abortar esa norma sin parchar (SCRAPER.md §4.3).
   Fixtures requeridas en `tests/fixtures/pdfs/` (validadas en spike):
   - 1 NCG modificadora corta (ej. `ncg_564_2026.pdf` — 2 páginas, sin `Artículo N`).
@@ -132,7 +132,7 @@
 - [ ] **HdU-10 — Parser de HTML**
   Como dev del scraper, quiero `src/scraper/parsers/html.ts` con `cheerio` y selectores específicos por plantilla CMF, para cubrir las normas que se sirven como HTML.
 
-- [ ] **HdU-11 — Segmentador estructural**
+- [x] **HdU-11 — Segmentador estructural**
   Como dev del scraper, quiero `src/scraper/segmenter.ts` que detecte jerarquía (`LIBRO`/`TÍTULO`/`CAPÍTULO`/`SECCIÓN`/`Artículo`/`Anexo`) con regex tolerantes y construya el árbol parent→child en `data/parsed/{normId}.json`, validando invariantes (numeración sin saltos, comillas balanceadas, tablas no perdidas, notas al pie referenciadas). Sin tree válido la norma no se carga (SCRAPER.md §4.4).
   **Tolerancia obligatoria** (confirmada en spike): no toda NCG tiene `Artículo 1`, `Artículo 2`. Las normas modificadoras cortas tienen `1.`, `2.` como dispositivos sin jerarquía formal. El segmenter debe distinguir entre norma sustantiva (con árbol) y norma modificadora (lista plana de dispositivos), y aplicar invariantes distintos a cada una. La clasificación se infiere del header (`MODIFICA NORMA DE CARÁCTER GENERAL N°...`) o del conteo de matches del regex `^Artículo\s+\d+`.
 
@@ -148,7 +148,7 @@
 
 ### Ingest (puente scraper → DB)
 
-- [ ] **HdU-15 — Loader de JSON parsed → SQLite**
+- [x] **HdU-15 — Loader de JSON parsed → SQLite**
   Como dev, quiero `src/ingest/loader.ts` que lea los `data/parsed/{normId}.json` producidos por el segmentador y los inserte en SQLite respetando la convención de IDs (DEVELOPER.md §4), para desacoplar parsing de carga (permite re-cargar sin re-parsear).
 
 - [ ] **HdU-16 — Validator de integridad post-ingest**
@@ -159,19 +159,19 @@
 
 ### Tools MCP
 
-- [ ] **HdU-18 — Tool `server_info`**
+- [x] **HdU-18 — Tool `server_info`**
   Como cliente MCP, quiero llamar `server_info` y recibir versión, fecha del último scrape, total de normas, cobertura por sector, link al repo y conteo de normas firmadas por validador, para confirmar la salud y procedencia del corpus.
 
-- [ ] **HdU-19 — Tool `list_norms`**
+- [x] **HdU-19 — Tool `list_norms`**
   Como cliente MCP, quiero filtrar por `tipo`, `sector`, `estado`, `fechaDesde`, `fechaHasta` con `limit` (default 50, máx 200) y recibir solo metadata (no texto), para explorar el corpus sin saturar el contexto.
 
-- [ ] **HdU-20 — Tool `get_norm`**
+- [x] **HdU-20 — Tool `get_norm`**
   Como cliente MCP, quiero pasar un `normId` y recibir metadata + índice estructural (secciones y lista de artículos con id/numero/rubrica), para entender la estructura antes de pedir texto.
 
-- [ ] **HdU-21 — Tool `get_article`**
+- [x] **HdU-21 — Tool `get_article`**
   Como cliente MCP, quiero pasar un `articleId` y recibir el texto íntegro + `urlOficial` + `fechaUltimaModificacion`, para citar la norma con trazabilidad.
 
-- [ ] **HdU-22 — Tool `search_articles` (FTS5 + BM25)**
+- [x] **HdU-22 — Tool `search_articles` (FTS5 + BM25)**
   Como cliente MCP, quiero buscar texto libre con filtros opcionales (`sector`, `tipo`, `estado` default `VIGENTE`, `limit` default 10 máx 50) y recibir snippets con score, para encontrar pasajes relevantes sin leer normas completas. La query se normaliza (lowercase, sin diacríticos) antes de FTS.
 
 ### Reglas de oro y validación
@@ -179,7 +179,7 @@
 - [ ] **HdU-23 — Bloqueo de normas no validadas en modo release**
   Como validador, quiero que en modo `release` el servidor MCP rehúse servir normas sin entrada en `validation_log`, para que el corpus público sea siempre validado. Modo `dev` lo salta.
 
-- [ ] **HdU-24 — Errores explícitos por ID inexistente**
+- [x] **HdU-24 — Errores explícitos por ID inexistente**
   Como cliente MCP, quiero que `get_norm`/`get_article` devuelvan error tipado cuando el ID no existe (no "mejor coincidencia"), para evitar que el agente alucine respuestas (regla de oro #2).
 
 ### Quality y CI

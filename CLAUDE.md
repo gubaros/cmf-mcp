@@ -3,11 +3,14 @@
 > Servidor MCP que expone normativa de la CMF (Chile) — NCG, RAN, Compendio Seguros — a clientes MCP (Claude Desktop, Cursor, Claude API con MCP).
 > Producto **gratuito y open-source**. No genera opinión legal: es capa de recuperación auditada. La interpretación queda en el modelo cliente y el usuario.
 
-## Estado actual
+## Estado actual (2026-05-04)
 
-- Bootstrap pendiente (HdU-01). Existen docs (CLAUDE.md, DEVELOPER.md, SCRAPER.md, COMPLIANCE_ANALYST.md, LEGAL_VALIDATOR.md, backlog.md, testing.md), LICENSE, workflows CI y reporte de spike `spikes/cmf_discovery.md`; el código TypeScript aún no se escribió.
+- **Pipeline completo implementado y funcionando.** Discovery → download → parse+OCR → ingest → MCP server con 5 tools operativas.
+- **DB en producción:** ~668+ normas RAN ingresadas; ingest del corpus completo (~3960 normas) corriendo. 89% del corpus CMF son PDFs escaneados (Alaris Capture Pro); OCR via tesseract-spa a 250 DPI.
+- **5 tools MCP operativas:** `server_info`, `list_norms`, `get_norm`, `get_article`, `search_articles` (FTS5 con snippets). Conectado a Claude Desktop.
+- **Scripts disponibles:** `pnpm discover` (solo fase discovery), `pnpm ingest` (solo parse+OCR+DB), `pnpm scrape` (pipeline completo), `pnpm start` (MCP server).
+- **Compendio Seguros pendiente (HdU-07c):** URL correcta del índice desconocida — devuelve 404. El resto del corpus (NCG, CIR, OFC, RAN) está operativo.
 - **Monorepo:** server MCP (`src/server.ts` + `src/tools/`) y scraper (`src/scraper/`) viven en el mismo repo. **Comparten** schema Drizzle, tipos y utilidades; **nunca corren en el mismo proceso** (entry points separados: `pnpm start` vs `pnpm scrape`). El MCP no scrapea en runtime — solo lee SQLite.
-- **Spike CMF completo** (2026-05-03): URL patterns confirmados (NCG predecible, RAN requiere lookup, Compendio Seguros vía `/web/compendio/`), PDFs parsean limpio sin OCR. Detalles e impacto en HdU-07/09/11/12 documentados en [spikes/cmf_discovery.md](spikes/cmf_discovery.md).
 
 ## Stack (decidido — ver [DEVELOPER.md](DEVELOPER.md) §2)
 
