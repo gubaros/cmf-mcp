@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import { request } from "undici";
 import { EstadoVigencia, Sector, TipoNorma } from "../../shared/enums";
 import type { IndexEntry } from "../../shared/types";
-import { BROWSER_HEADERS, CMF_DISPATCHER } from "../http";
+import { BROWSER_HEADERS, CMF_DISPATCHER, withRetry } from "../http";
 
 const INDEX_URL =
   "https://www.cmfchile.cl/institucional/mercados/publicaciones_compendionormas_seguros.php";
@@ -77,24 +77,32 @@ export function parseCompendioHtml(html: string): IndexEntry[] {
 }
 
 export async function fetchCompendioSeguros(): Promise<IndexEntry[]> {
-  const { body, statusCode } = await request(INDEX_URL, {
-    headers: {
-      ...BROWSER_HEADERS,
-      Referer: "https://www.cmfchile.cl/institucional/mercados/",
-    },
-    headersTimeout: 30_000,
-    bodyTimeout: 30_000,
-    dispatcher: CMF_DISPATCHER,
-  });
+  try {
+    return await withRetry(async () => {
+      const { body, statusCode } = await request(INDEX_URL, {
+        headers: {
+          ...BROWSER_HEADERS,
+          Referer: "https://www.cmfchile.cl/institucional/mercados/",
+        },
+        headersTimeout: 30_000,
+        bodyTimeout: 30_000,
+        dispatcher: CMF_DISPATCHER,
+      });
 
-  if (statusCode !== 200) {
-    await body.dump();
-    // Non-fatal: Compendio Seguros index URL is unstable — skip and continue discovery.
-    // TODO HdU-07c: locate correct CMF portal page for Compendio Seguros index.
-    console.warn(`[compendio_seguros] index returned HTTP ${statusCode} — skipping`);
+      if (statusCode !== 200) {
+        await body.dump();
+        // Non-fatal: Compendio Seguros index URL is unstable — skip and continue discovery.
+        // TODO HdU-07c: locate correct CMF portal page for Compendio Seguros index.
+        console.warn(`[compendio_seguros] index returned HTTP ${statusCode} — skipping`);
+        return [] as IndexEntry[];
+      }
+
+      const html = await body.text();
+      return parseCompendioHtml(html);
+    });
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code ?? "";
+    console.warn(`[compendio_seguros] fetch failed (${code}) — skipping`);
     return [];
   }
-
-  const html = await body.text();
-  return parseCompendioHtml(html);
 }

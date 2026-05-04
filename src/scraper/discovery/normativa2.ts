@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import { request } from "undici";
 import { EstadoVigencia, Sector, TipoNorma } from "../../shared/enums";
 import type { IndexEntry } from "../../shared/types";
-import { BROWSER_HEADERS, CMF_DISPATCHER } from "../http";
+import { BROWSER_HEADERS, CMF_DISPATCHER, withRetry } from "../http";
 
 const BASE_URL = "https://www.cmfchile.cl/institucional/legislacion_normativa/normativa2.php";
 
@@ -158,21 +158,23 @@ export async function fetchNormativa2(
     enviado: "1",
   });
 
-  const { body, statusCode } = await request(`${BASE_URL}?${params}`, {
-    headers: {
-      ...BROWSER_HEADERS,
-      Referer: "https://www.cmfchile.cl/institucional/legislacion_normativa/normativa2.php",
-    },
-    headersTimeout: 30_000,
-    bodyTimeout: 30_000,
-    dispatcher: CMF_DISPATCHER,
+  return withRetry(async () => {
+    const { body, statusCode } = await request(`${BASE_URL}?${params}`, {
+      headers: {
+        ...BROWSER_HEADERS,
+        Referer: "https://www.cmfchile.cl/institucional/legislacion_normativa/normativa2.php",
+      },
+      headersTimeout: 30_000,
+      bodyTimeout: 30_000,
+      dispatcher: CMF_DISPATCHER,
+    });
+
+    if (statusCode !== 200) {
+      await body.dump();
+      throw new Error(`normativa2.php returned HTTP ${statusCode}`);
+    }
+
+    const html = await body.text();
+    return parseNormativa2Html(html, tiponorma, mercado);
   });
-
-  if (statusCode !== 200) {
-    await body.dump();
-    throw new Error(`normativa2.php returned HTTP ${statusCode}`);
-  }
-
-  const html = await body.text();
-  return parseNormativa2Html(html, tiponorma, mercado);
 }

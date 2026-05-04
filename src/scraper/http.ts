@@ -18,3 +18,21 @@ export function jitter(minMs: number, maxMs: number): Promise<void> {
   const ms = minMs + Math.random() * (maxMs - minMs);
   return new Promise((r) => setTimeout(r, ms));
 }
+
+const RETRYABLE = new Set(["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT"]);
+
+// Retry wrapper for discovery HTTP calls (3 attempts, exponential backoff 2s/4s)
+export async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const code = (err as NodeJS.ErrnoException).code ?? "";
+      if (!RETRYABLE.has(code)) throw err;
+      await jitter(2_000 * 2 ** i, 3_000 * 2 ** i);
+    }
+  }
+  throw lastErr;
+}

@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { request } from "undici";
 import { EstadoVigencia, Sector, TipoNorma } from "../../shared/enums";
 import type { IndexEntry } from "../../shared/types";
-import { BROWSER_HEADERS, CMF_DISPATCHER } from "../http";
+import { BROWSER_HEADERS, CMF_DISPATCHER, withRetry } from "../http";
 
 // Verified 2026-05-04 — source: w3-propertyvalue-29580.html
 const SEED_PATH = resolve(__dirname, "ran_seed.json");
@@ -76,31 +76,33 @@ export function fetchRanFromSeed(seedPath = SEED_PATH): IndexEntry[] {
 
 // Live fetch — used by scrape:verify-ran to update the seed against CMF.
 export async function fetchRanLive(): Promise<SeedChapter[]> {
-  const { body, statusCode } = await request(PORTAL_URL, {
-    headers: {
-      ...BROWSER_HEADERS,
-      Referer: "https://www.cmfchile.cl/portal/principal/613/index.html",
-    },
-    headersTimeout: 30_000,
-    bodyTimeout: 30_000,
-    dispatcher: CMF_DISPATCHER,
+  return withRetry(async () => {
+    const { body, statusCode } = await request(PORTAL_URL, {
+      headers: {
+        ...BROWSER_HEADERS,
+        Referer: "https://www.cmfchile.cl/portal/principal/613/index.html",
+      },
+      headersTimeout: 30_000,
+      bodyTimeout: 30_000,
+      dispatcher: CMF_DISPATCHER,
+    });
+
+    if (statusCode !== 200) {
+      await body.dump();
+      throw new Error(`RAN portal returned HTTP ${statusCode}`);
+    }
+
+    const html = await body.text();
+    const chapters = parseRanPortalHtml(html);
+
+    if (chapters.length < MIN_CHAPTERS) {
+      throw new Error(
+        `RAN live fetch returned only ${chapters.length} chapters (minimum ${MIN_CHAPTERS}). Site structure may have changed.`,
+      );
+    }
+
+    return chapters;
   });
-
-  if (statusCode !== 200) {
-    await body.dump();
-    throw new Error(`RAN portal returned HTTP ${statusCode}`);
-  }
-
-  const html = await body.text();
-  const chapters = parseRanPortalHtml(html);
-
-  if (chapters.length < MIN_CHAPTERS) {
-    throw new Error(
-      `RAN live fetch returned only ${chapters.length} chapters (minimum ${MIN_CHAPTERS}). Site structure may have changed.`,
-    );
-  }
-
-  return chapters;
 }
 
 // Default export used by runDiscovery — reads seed, never hits network.
