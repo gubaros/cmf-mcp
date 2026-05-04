@@ -82,11 +82,15 @@
 
   Output: entradas a `data/index.jsonl` con id `ran-{cap}-{sec}`, sector `BANCARIO`.
 
-- [x] **HdU-07c — Discovery Compendio Seguros**
+- [ ] **HdU-07c — Discovery Compendio Seguros**
   Como dev del scraper, quiero `src/scraper/discovery/compendio_seguros.ts` que use el form `normativa.php?mercado=S` para listar normativa de seguros (incluye Compendio) y descubra la convención de paths bajo `/web/compendio/...` (ej. `/web/compendio/ncg/ncg_221_2008.pdf`). **NO** usar la página `publicaciones_compendionormas_seguros.php` porque es comercial (vende ediciones impresas). Output: entradas a `data/index.jsonl` con id `cseg-{libro}-{titulo}`.
 
-- [x] **HdU-07d — Persistencia de `index.jsonl` y manejo de DESAPARECIDA**
+  ⚠️ _Módulo existe pero usa la URL prohibida por spec (`publicaciones_compendionormas_seguros.php`) y devuelve 404 → 0 entradas. URL correcta del índice Compendio Seguros todavía desconocida._
+
+- [ ] **HdU-07d — Persistencia de `index.jsonl` y manejo de DESAPARECIDA**
   Como dev del scraper, quiero `src/scraper/discovery/index.ts` que combine los 3 outputs anteriores en un único `data/index.jsonl`, compare contra el index de la corrida previa, y marque como `DESAPARECIDA` (sin borrar) cualquier norma ya no presente — para elevar al validador legal sin perder histórico (SCRAPER.md §4.1).
+
+  ⚠️ _Parcial: combine de 3 fuentes + dedup + write JSONL implementados. Falta: leer corrida previa, propagar flag `DESAPARECIDA` en el JSONL, tests. El contador `desaparecidas` actual es una heurística (cross-referencias ausentes), no comparación histórica._
 
 - [ ] **HdU-07e — Completitud del corpus: umbrales, verificación y gate de corrida**
   Como mantenedor del scraper, quiero que `runDiscovery` verifique que cada fuente supera su umbral mínimo **antes** de escribir `index.jsonl` o pasar al downloader, para que una corrida con corpus incompleto nunca llegue silenciosamente a producción.
@@ -120,17 +124,15 @@
   - `downloadRanBulk()` — descarga todos los capítulos del seed RAN directamente, sin necesitar `index.jsonl`. Útil para bootstrap inicial y para `pnpm scrape:verify-ran`.
   - Ambos modos usan el mismo caché `data/raw/{id}/{fechaDescarga}.pdf` y la misma lógica de retry/rate-limit.
 
-- [x] **HdU-09 — Parser de PDFs**
-  Como dev del scraper, quiero `src/scraper/parsers/pdf.ts` con `pdfjs-dist` como primario y `pdf-parse` como fallback (cuando el primer extract tiene >5% caracteres no imprimibles), retornando texto plano + metadata, para cubrir el 95% de PDFs CMF. Si ambos fallan, marcar `PARSE_FAIL` y abortar esa norma sin parchar (SCRAPER.md §4.3).
-  Fixtures requeridas en `tests/fixtures/pdfs/` (validadas en spike):
+- [ ] **HdU-09 — Parser de PDFs**
+  Como dev del scraper, quiero `src/scraper/parsers/pdf.ts` con `pdfjs-dist` como primario y OCR vía tesseract-spa como fallback (cuando el primer extract tiene >5% caracteres no imprimibles — confirmado: 89% del corpus CMF son PDFs escaneados), retornando texto plano + metadata, para cubrir el 95%+ de PDFs CMF. Si ambos fallan, marcar `PARSE_FAIL` y abortar esa norma sin parchar (SCRAPER.md §4.3).
+
+  ⚠️ _Parcial: `src/scraper/parsers/pdf.ts` implementado y validado en producción (3960 normas ingresadas). Pendiente: fixtures PDF en `tests/fixtures/pdfs/` y tests formales del parser (actualmente solo se prueba vía ingest de producción). También pendiente: detección y separación del bloque de firma digital._
+
+  Fixtures requeridas en `tests/fixtures/pdfs/`:
   - 1 NCG modificadora corta (ej. `ncg_564_2026.pdf` — 2 páginas, sin `Artículo N`).
   - 1 NCG sustantiva larga (ej. `ncg_221_2008.pdf` — 61 páginas, estructura completa).
   - 1 capítulo RAN (ej. `articles-28952_doc_pdf.pdf`).
-  - 1 capítulo Compendio Seguros.
-  El parser debe detectar y separar el bloque de firma digital al final del PDF (no parsearlo como texto normativo).
-
-- [ ] **HdU-10 — Parser de HTML**
-  Como dev del scraper, quiero `src/scraper/parsers/html.ts` con `cheerio` y selectores específicos por plantilla CMF, para cubrir las normas que se sirven como HTML.
 
 - [x] **HdU-11 — Segmentador estructural**
   Como dev del scraper, quiero `src/scraper/segmenter.ts` que detecte jerarquía (`LIBRO`/`TÍTULO`/`CAPÍTULO`/`SECCIÓN`/`Artículo`/`Anexo`) con regex tolerantes y construya el árbol parent→child en `data/parsed/{normId}.json`, validando invariantes (numeración sin saltos, comillas balanceadas, tablas no perdidas, notas al pie referenciadas). Sin tree válido la norma no se carga (SCRAPER.md §4.4).
@@ -145,6 +147,8 @@
 
 - [ ] **HdU-14 — CLI orquestador `pnpm scrape`**
   Como mantenedor, quiero `src/cli/scrape.ts` que oriente todo el pipeline (discovery → download → parse → segment → change-detect → ingest → run report) con flags `--dry-run`, `--only=<id>`, `--since=<date>`, y que aborte la corrida si >2% de fallos (SCRAPER.md §4.6). Entry point completamente separado del MCP server.
+
+  ⚠️ _Parcial: `src/cli/scrape.ts` encadena las 4 fases (discovery→download→ingest). Pendiente: flags CLI, abort threshold >2%, run report._
 
 ### Ingest (puente scraper → DB)
 
@@ -190,7 +194,7 @@
 - [ ] **HdU-26 — Snapshot tests por tool MCP y por etapa del scraper**
   Como dev, quiero un snapshot por cada tool MCP con input/output esperado contra fixtures (incluyendo el log emitido) y snapshots por etapa del scraper (PDF parsed → segmenter output → JSON normalizado), para detectar regresiones silenciosas en cualquier capa.
 
-- [ ] **HdU-27 — GitHub Actions: typecheck + lint + test (Node 20 y 22)**
+- [x] **HdU-27 — GitHub Actions: typecheck + lint + test (Node 20 y 22)**
   Como dev, quiero CI en cada PR que corra `pnpm typecheck && pnpm lint && pnpm test` sobre Node 20 y 22, para no mergear regresiones. (Workflows `build.yml` y `test.yml` ya existen — esta HdU se cierra cuando pasen verde después de HdU-01.)
 
 ### Distribución
