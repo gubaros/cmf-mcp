@@ -14,6 +14,8 @@
   "scripts": {
     "start": "tsx src/server.ts",
     "scrape": "tsx src/cli/scrape.ts",
+    "discover": "tsx src/cli/discover.ts",
+    "ingest": "tsx src/cli/ingest.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "build": "tsup",
@@ -47,5 +49,6 @@
     "tsx": "^4.0.0",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
-  }
+  },
+  "packageManager": "pnpm@10.33.2+sha512.a90faf6feeab71ad6c6e57f94e0fe1a12f5dcc22cd754db40ae9593eb6a3e0b6b12e3540218bb37ae083404b1f2ce6db2a4121e979829b4aff94b99f49da1cf8"
 }

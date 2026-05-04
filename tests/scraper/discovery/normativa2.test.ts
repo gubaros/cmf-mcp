@@ -28,7 +28,7 @@ describe("parseNormativa2Html", () => {
     expect(ncg461?.modificadaPor).toEqual([]);
   });
 
-  it("mapea DEROGADA correctamente", () => {
+  it("mapea NoVigente correctamente", () => {
     const html = loadFixture("ncg_valores.html");
     const entries = parseNormativa2Html(html, "NCG", "V");
 
@@ -45,24 +45,28 @@ describe("parseNormativa2Html", () => {
   });
 
   it("retorna vacío con tabla sin filas de datos", () => {
-    const html =
-      "<html><body><table><tr><th>Tipo</th><th>Número</th><th>Fecha</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th><th>Vigencia</th></tr></table></body></html>";
+    const html = `<html><body><table><tr>${Array(18).fill("<th>X</th>").join("")}</tr></table></body></html>`;
     const entries = parseNormativa2Html(html, "NCG", "V");
     expect(entries).toHaveLength(0);
   });
 
   it("omite filas con número o fecha vacíos", () => {
+    // Row 1: no number; Row 2: no date — both should be skipped
+    const empties = (n: number) => Array(n).fill("<td></td>").join("");
     const html = `<html><body><table>
-      <tr><td></td><td></td><td>01-01-2024</td><td>Titulo</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>VIGENTE</td></tr>
-      <tr><td>NCG</td><td>100</td><td></td><td>Titulo</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>VIGENTE</td></tr>
+      <tr><td></td><td></td><td>01/01/2024</td><td>Titulo</td>${empties(14)}</tr>
+      <tr><td>NCG</td><td>100</td><td></td><td>Titulo</td>${empties(14)}</tr>
     </table></body></html>`;
     const entries = parseNormativa2Html(html, "NCG", "V");
     expect(entries).toHaveLength(0);
   });
 
-  it("extrae múltiples referencias en columna modifica", () => {
+  it("extrae múltiples referencias en columna modifica (números planos)", () => {
+    // Columns 0-17, with Modifica (col 9) = "100\n200"
+    const empties = (n: number) => Array(n).fill("<td></td>").join("");
     const html = `<html><body><table>
-      <tr><td>NCG</td><td>400</td><td>10-03-2020</td><td>Norma multi</td><td></td><td></td><td></td><td>NCG N°100, NCG N°200</td><td></td><td></td><td></td><td>VIGENTE</td></tr>
+      <tr><td>NCG</td><td>400</td><td>10/03/2020</td><td>Norma multi</td>${empties(5)}<td>100
+200</td>${empties(8)}</tr>
     </table></body></html>`;
     const entries = parseNormativa2Html(html, "NCG", "V");
     expect(entries[0]?.modifica).toEqual(["ncg-100", "ncg-200"]);

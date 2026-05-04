@@ -1,0 +1,595 @@
+{
+  "source": "https://www.cmfchile.cl/portal/principal/613/w3-propertyvalue-29580.html",
+  "fechaExtraccion": "2026-05-04",
+  "total": 98,
+  "chapters": [
+    {
+      "id": "ran-1-1",
+      "cap": "1-1",
+      "articleId": "28888",
+      "titulo": "Ley N°18.046 sobre sociedades anónimas y su reglamento, en relación con los bancos."
+    },
+    {
+      "id": "ran-1-3",
+      "cap": "1-3",
+      "articleId": "28889",
+      "titulo": "Accionistas. Disposiciones varias."
+    },
+    {
+      "id": "ran-1-4",
+      "cap": "1-4",
+      "articleId": "28891",
+      "titulo": "Directores. Disposiciones varias."
+    },
+    {
+      "id": "ran-1-7",
+      "cap": "1-7",
+      "articleId": "28893",
+      "titulo": "Transferencia electrónica de información y fondos."
+    },
+    {
+      "id": "ran-1-8",
+      "cap": "1-8",
+      "articleId": "28894",
+      "titulo": "Canales de atención bancarios."
+    },
+    {
+      "id": "ran-1-10",
+      "cap": "1-10",
+      "articleId": "28895",
+      "titulo": "Conservación y eliminación de archivos."
+    },
+    {
+      "id": "ran-1-11",
+      "cap": "1-11",
+      "articleId": "28896",
+      "titulo": "Colocación de acciones en el extranjero mediante sistema de títulos representativos."
+    },
+    {
+      "id": "ran-1-12",
+      "cap": "1-12",
+      "articleId": "28897",
+      "titulo": "Nómina de empresas calificadoras internacionales."
+    },
+    {
+      "id": "ran-1-13",
+      "cap": "1-13",
+      "articleId": "28898",
+      "titulo": "Clasificación de gestión y solvencia."
+    },
+    {
+      "id": "ran-1-14",
+      "cap": "1-14",
+      "articleId": "28899",
+      "titulo": "Prevención del lavado de activos, el financiamiento del terrorismo y la proliferación de armas de destrucción masiva."
+    },
+    {
+      "id": "ran-1-15",
+      "cap": "1-15",
+      "articleId": "28900",
+      "titulo": "Comités de auditoría."
+    },
+    {
+      "id": "ran-1-16",
+      "cap": "1-16",
+      "articleId": "28901",
+      "titulo": "Operaciones con personas expuestas políticamente."
+    },
+    {
+      "id": "ran-1-17",
+      "cap": "1-17",
+      "articleId": "28905",
+      "titulo": "Información financiera. Solvencia de los accionistas controladores."
+    },
+    {
+      "id": "ran-1-18",
+      "cap": "1-18",
+      "articleId": "28906",
+      "titulo": "Acciones a nombre propio por cuenta de terceros."
+    },
+    {
+      "id": "ran-1-19",
+      "cap": "1-19",
+      "articleId": "75753",
+      "titulo": "Instrucciones complementarias para la aplicación de los títulos XIV y XV de la ley general de bancos"
+    },
+    {
+      "id": "ran-2-1",
+      "cap": "2-1",
+      "articleId": "28907",
+      "titulo": "Captaciones e intermediación."
+    },
+    {
+      "id": "ran-2-2",
+      "cap": "2-2",
+      "articleId": "28908",
+      "titulo": "Cuentas corrientes bancarias y cheques."
+    },
+    {
+      "id": "ran-2-4",
+      "cap": "2-4",
+      "articleId": "28909",
+      "titulo": "Cuentas de ahorro."
+    },
+    {
+      "id": "ran-2-5",
+      "cap": "2-5",
+      "articleId": "28911",
+      "titulo": "Cuentas de ahorro para la vivienda."
+    },
+    {
+      "id": "ran-2-6",
+      "cap": "2-6",
+      "articleId": "28912",
+      "titulo": "Depósitos a la vista."
+    },
+    {
+      "id": "ran-2-8",
+      "cap": "2-8",
+      "articleId": "28913",
+      "titulo": "Cuentas de ahorro para arrendamiento de viviendas con promesa de compraventa"
+    },
+    {
+      "id": "ran-2-9",
+      "cap": "2-9",
+      "articleId": "28914",
+      "titulo": "Cuentas de ahorro a plazo para fines específicos."
+    },
+    {
+      "id": "ran-2-10",
+      "cap": "2-10",
+      "articleId": "28915",
+      "titulo": "Planes de ahorro previsional voluntario."
+    },
+    {
+      "id": "ran-2-11",
+      "cap": "2-11",
+      "articleId": "28917",
+      "titulo": "Registro de valores. Emisión de valores mobiliarios."
+    },
+    {
+      "id": "ran-2-12",
+      "cap": "2-12",
+      "articleId": "28920",
+      "titulo": "Pérdida o deterioro de títulos de crédito."
+    },
+    {
+      "id": "ran-2-13",
+      "cap": "2-13",
+      "articleId": "28921",
+      "titulo": "Caducidad de depósitos o de cualquiera otra acreencia en favor de terceros."
+    },
+    {
+      "id": "ran-3-1",
+      "cap": "3-1",
+      "articleId": "28922",
+      "titulo": "Valores en cobro."
+    },
+    {
+      "id": "ran-4-1",
+      "cap": "4-1",
+      "articleId": "28923",
+      "titulo": "Encaje."
+    },
+    {
+      "id": "ran-4-2",
+      "cap": "4-2",
+      "articleId": "28924",
+      "titulo": "Reserva técnica artículo 65 de la Ley General de Bancos."
+    },
+    {
+      "id": "ran-5-1",
+      "cap": "5-1",
+      "articleId": "28925",
+      "titulo": "Canje y cámara de compensación."
+    },
+    {
+      "id": "ran-5-2",
+      "cap": "5-2",
+      "articleId": "28926",
+      "titulo": "Ordenes de pago de pensiones Ley 17.671."
+    },
+    {
+      "id": "ran-6-1",
+      "cap": "6-1",
+      "articleId": "28927",
+      "titulo": "Documentos pagaderos por Cámara de Compensación."
+    },
+    {
+      "id": "ran-7-1",
+      "cap": "7-1",
+      "articleId": "28928",
+      "titulo": "Intereses y reajustes."
+    },
+    {
+      "id": "ran-7-12",
+      "cap": "7-12",
+      "articleId": "28929",
+      "titulo": "Valor razonable de instrumentos financieros."
+    },
+    {
+      "id": "ran-7-13",
+      "cap": "7-13",
+      "articleId": "28930",
+      "titulo": "Riesgo-país y clasificación de países."
+    },
+    {
+      "id": "ran-8-1",
+      "cap": "8-1",
+      "articleId": "28931",
+      "titulo": "Sobregiro en cuenta corriente bancaria."
+    },
+    {
+      "id": "ran-8-4",
+      "cap": "8-4",
+      "articleId": "28932",
+      "titulo": "Mutuos hipotecarios endosables."
+    },
+    {
+      "id": "ran-8-8",
+      "cap": "8-8",
+      "articleId": "28933",
+      "titulo": "Crédito a empresas del Estado."
+    },
+    {
+      "id": "ran-8-9",
+      "cap": "8-9",
+      "articleId": "28934",
+      "titulo": "Fondo de garantía para pequeños empresarios."
+    },
+    {
+      "id": "ran-8-10",
+      "cap": "8-10",
+      "articleId": "28935",
+      "titulo": "Avales y fianzas."
+    },
+    {
+      "id": "ran-8-11",
+      "cap": "8-11",
+      "articleId": "28936",
+      "titulo": "Boletas de garantía."
+    },
+    {
+      "id": "ran-8-12",
+      "cap": "8-12",
+      "articleId": "28937",
+      "titulo": "Cartas de Resguardo."
+    },
+    {
+      "id": "ran-8-17",
+      "cap": "8-17",
+      "articleId": "28938",
+      "titulo": "Información a los avalistas o fiadores sobre el incumplimiento del deudor directo."
+    },
+    {
+      "id": "ran-8-18",
+      "cap": "8-18",
+      "articleId": "28939",
+      "titulo": "Cobranza de dividendos hipotecarios."
+    },
+    {
+      "id": "ran-8-33",
+      "cap": "8-33",
+      "articleId": "28940",
+      "titulo": "Sistema de Compensación de dividendos Ley N° 19.360."
+    },
+    {
+      "id": "ran-8-37",
+      "cap": "8-37",
+      "articleId": "28941",
+      "titulo": "Operaciones de leasing."
+    },
+    {
+      "id": "ran-8-38",
+      "cap": "8-38",
+      "articleId": "28942",
+      "titulo": "Operaciones de factoraje."
+    },
+    {
+      "id": "ran-8-40",
+      "cap": "8-40",
+      "articleId": "28943",
+      "titulo": "Securitización de activos."
+    },
+    {
+      "id": "ran-8-41",
+      "cap": "8-41",
+      "articleId": "28944",
+      "titulo": "Tarjetas de pago."
+    },
+    {
+      "id": "ran-9-1",
+      "cap": "9-1",
+      "articleId": "28945",
+      "titulo": "Operaciones con letras de crédito."
+    },
+    {
+      "id": "ran-9-2",
+      "cap": "9-2",
+      "articleId": "28946",
+      "titulo": "Operaciones con bonos hipotecarios."
+    },
+    {
+      "id": "ran-10-1",
+      "cap": "10-1",
+      "articleId": "28948",
+      "titulo": "Bienes recibidos o adjudicados en pago de obligaciones."
+    },
+    {
+      "id": "ran-10-2",
+      "cap": "10-2",
+      "articleId": "28949",
+      "titulo": "Colocación de acciones de primera emisión por cuenta de terceros."
+    },
+    {
+      "id": "ran-11-5",
+      "cap": "11-5",
+      "articleId": "28950",
+      "titulo": "Activo fijo."
+    },
+    {
+      "id": "ran-11-6",
+      "cap": "11-6",
+      "articleId": "28951",
+      "titulo": "Inversiones en sociedades en el país."
+    },
+    {
+      "id": "ran-11-7",
+      "cap": "11-7",
+      "articleId": "28952",
+      "titulo": "Sucursales e inversiones en bancos y otras sociedades en el exterior."
+    },
+    {
+      "id": "ran-12-1",
+      "cap": "12-1",
+      "articleId": "28953",
+      "titulo": "Patrimonio para efectos legales y reglamentarios."
+    },
+    {
+      "id": "ran-12-3",
+      "cap": "12-3",
+      "articleId": "28954",
+      "titulo": "Límites individuales de crédito y garantías artículo 84 Nº1 de la Ley General de Bancos."
+    },
+    {
+      "id": "ran-12-4",
+      "cap": "12-4",
+      "articleId": "28955",
+      "titulo": "Límite de créditos otorgados a personas relacionadas artículo 84 N° 2 de la Ley General de Bancos."
+    },
+    {
+      "id": "ran-12-7",
+      "cap": "12-7",
+      "articleId": "28956",
+      "titulo": "Límite de obligaciones con otros bancos del país."
+    },
+    {
+      "id": "ran-12-10",
+      "cap": "12-10",
+      "articleId": "28957",
+      "titulo": "Límite de inversiones artículo 69 Ley General de Bancos."
+    },
+    {
+      "id": "ran-12-12",
+      "cap": "12-12",
+      "articleId": "28958",
+      "titulo": "Prohibición de otorgar créditos a directores, apoderados generales y personas relacionadas con ellos."
+    },
+    {
+      "id": "ran-12-14",
+      "cap": "12-14",
+      "articleId": "28959",
+      "titulo": "Aplicación del artículo 35 bis de la Ley General de Bancos."
+    },
+    {
+      "id": "ran-12-15",
+      "cap": "12-15",
+      "articleId": "28960",
+      "titulo": "Normas sobre créditos hacia el exterior. Artículo 83 de la Ley General de Bancos."
+    },
+    {
+      "id": "ran-12-16",
+      "cap": "12-16",
+      "articleId": "49707",
+      "titulo": "Límite de créditos otorgados a grupos empresariales."
+    },
+    {
+      "id": "ran-12-20",
+      "cap": "12-20",
+      "articleId": "28961",
+      "titulo": "Gestión y medición de la posición de liquidez."
+    },
+    {
+      "id": "ran-13-34",
+      "cap": "13-34",
+      "articleId": "28963",
+      "titulo": "Emisión de títulos pagaderos en moneda extranjera para ser colocados o negociados en el exterior."
+    },
+    {
+      "id": "ran-14-8",
+      "cap": "14-8",
+      "articleId": "28964",
+      "titulo": "Exención de Impuestos de Timbres y Estampillas. Documentos de exportación y de créditos al exterior."
+    },
+    {
+      "id": "ran-16-3",
+      "cap": "16-3",
+      "articleId": "28965",
+      "titulo": "Caja. Dinero en tránsito o en custodia."
+    },
+    {
+      "id": "ran-16-4",
+      "cap": "16-4",
+      "articleId": "28966",
+      "titulo": "Pago de documentos a personas que no saben firmar."
+    },
+    {
+      "id": "ran-17-5",
+      "cap": "17-5",
+      "articleId": "28967",
+      "titulo": "Colocación de cuotas de fondos mutuos en calidad de agentes."
+    },
+    {
+      "id": "ran-18-3",
+      "cap": "18-3",
+      "articleId": "28968",
+      "titulo": "Compendio de Normas Contables y Manual del Sistema de Información."
+    },
+    {
+      "id": "ran-18-4",
+      "cap": "18-4",
+      "articleId": "28969",
+      "titulo": "Estatutos de los bancos. Necesidad de establecer textos refundidos."
+    },
+    {
+      "id": "ran-18-5",
+      "cap": "18-5",
+      "articleId": "28970",
+      "titulo": "Información sobre deudores de las instituciones financieras."
+    },
+    {
+      "id": "ran-18-9",
+      "cap": "18-9",
+      "articleId": "28972",
+      "titulo": "Información al público. Antecedentes acerca del banco que deben mantenerse en sus oficinas."
+    },
+    {
+      "id": "ran-18-10",
+      "cap": "18-10",
+      "articleId": "28973",
+      "titulo": "Informaciones esenciales artículos 9º y 10 de la Ley N° 18.045. Contenido Clasificaciones Recursos"
+    },
+    {
+      "id": "ran-18-11",
+      "cap": "18-11",
+      "articleId": "28975",
+      "titulo": "Información a la Superintendencia de Valores y Seguros."
+    },
+    {
+      "id": "ran-18-13",
+      "cap": "18-13",
+      "articleId": "28976",
+      "titulo": "Incentivos distintos de intereses, reajustes y comisiones."
+    },
+    {
+      "id": "ran-19-1",
+      "cap": "19-1",
+      "articleId": "28977",
+      "titulo": "Firmas evaluadoras de instituciones financieras."
+    },
+    {
+      "id": "ran-19-2",
+      "cap": "19-2",
+      "articleId": "28978",
+      "titulo": "Auditores externos."
+    },
+    {
+      "id": "ran-20-1",
+      "cap": "20-1",
+      "articleId": "28979",
+      "titulo": "Exhibición del Rol Único Tributario o de la Cédula Nacional de Identidad."
+    },
+    {
+      "id": "ran-20-3",
+      "cap": "20-3",
+      "articleId": "28980",
+      "titulo": "Certificación del tipo de cambio por las entidades bancarias."
+    },
+    {
+      "id": "ran-20-6",
+      "cap": "20-6",
+      "articleId": "28981",
+      "titulo": "Publicaciones en el Boletín de Informaciones Comerciales."
+    },
+    {
+      "id": "ran-20-7",
+      "cap": "20-7",
+      "articleId": "28982",
+      "titulo": "Externalización de servicios."
+    },
+    {
+      "id": "ran-20-8",
+      "cap": "20-8",
+      "articleId": "28983",
+      "titulo": "Información de Incidentes Operacionales."
+    },
+    {
+      "id": "ran-20-9",
+      "cap": "20-9",
+      "articleId": "28984",
+      "titulo": "Gestión de la continuidad del negocio."
+    },
+    {
+      "id": "ran-20-10",
+      "cap": "20-10",
+      "articleId": "29310",
+      "titulo": "Gestión de Seguridad de la Información y Ciberseguridad"
+    },
+    {
+      "id": "ran-21-1",
+      "cap": "21-1",
+      "articleId": "30051",
+      "titulo": "Patrimonio para efectos legales y reglamentarios"
+    },
+    {
+      "id": "ran-21-2",
+      "cap": "21-2",
+      "articleId": "38750",
+      "titulo": "Instrumentos de Capital Adicional Nivel 1 para la constitución de patrimonio efectivo: acciones preferentes y bonos sin plazo fijo de vencimiento del artículo 55 bis de la Ley General de Bancos"
+    },
+    {
+      "id": "ran-21-3",
+      "cap": "21-3",
+      "articleId": "38751",
+      "titulo": "Instrumentos de capital Nivel 2 para la constitución de patrimonio efectivo: bonos subordinados del artículo 55 de la Ley General de Bancos"
+    },
+    {
+      "id": "ran-21-6",
+      "cap": "21-6",
+      "articleId": "38826",
+      "titulo": "Determinación de los activos ponderados por riesgo de crédito"
+    },
+    {
+      "id": "ran-21-7",
+      "cap": "21-7",
+      "articleId": "38827",
+      "titulo": "Determinación de los activos ponderados por riesgo de mercado"
+    },
+    {
+      "id": "ran-21-11",
+      "cap": "21-11",
+      "articleId": "30246",
+      "titulo": "Factores y metodología para Bancos o grupo de bancos calificados de importancia sistémica y exigencias que se podrán imponer como consecuencia de esta calificación"
+    },
+    {
+      "id": "ran-21-12",
+      "cap": "21-12",
+      "articleId": "29887",
+      "titulo": "Capital Básico Adicional, Artículos 66 Bis y 66 Ter de la Ley General de Bancos"
+    },
+    {
+      "id": "ran-21-13",
+      "cap": "21-13",
+      "articleId": "29808",
+      "titulo": "Evaluación de la Suficiencia de Patrimonio Efectivo de los Bancos"
+    },
+    {
+      "id": "ran-21-14",
+      "cap": "21-14",
+      "articleId": "60243",
+      "titulo": "Evaluación de la suficiencia de la posición de liquidez de los bancos"
+    },
+    {
+      "id": "ran-21-20",
+      "cap": "21-20",
+      "articleId": "38828",
+      "titulo": "Disciplina de mercado y transparencia"
+    },
+    {
+      "id": "ran-21-30",
+      "cap": "21-30",
+      "articleId": "30028",
+      "titulo": "Relación entre el capital básico y los activos totales"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div class="compendio-index">
+  <h2>Compendio de Normas para Compañías de Seguros</h2>
+  <ul>
+    <li>
+      <a href="ver_archivo.php?archivo=/web/compendio/libro_i/titulo_1_disposiciones_generales.pdf">
+        Libro I - Título 1: Disposiciones Generales
+      </a>
+    </li>
+    <li>
+      <a href="ver_archivo.php?archivo=/web/compendio/libro_i/titulo_2_autorizacion.pdf">
+        Libro I - Título 2: Autorización de Existencia y Operación
+      </a>
+    </li>
+    <li>
+      <a href="ver_archivo.php?archivo=/web/compendio/libro_iii/titulo_2_operaciones.pdf">
+        Libro III - Título 2: Operaciones
+      </a>
+    </li>
+    <!-- Non-compendio link — must be ignored -->
+    <li><a href="ver_archivo.php?archivo=/web/otros/documento.pdf">Otro documento</a></li>
+    <!-- No archivo param — must be ignored -->
+    <li><a href="publicaciones_compendionormas_seguros.php">Volver</a></li>
+    <!-- Duplicate — must be deduplicated -->
+    <li>
+      <a href="ver_archivo.php?archivo=/web/compendio/libro_i/titulo_1_disposiciones_generales.pdf">
+        Libro I - Título 1 (duplicado)
+      </a>
+    </li>
+  </ul>
+</div>
+</body>
+</html>

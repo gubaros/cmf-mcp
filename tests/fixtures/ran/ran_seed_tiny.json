@@ -1,0 +1,9 @@
+{
+  "source": "test",
+  "fechaExtraccion": "2026-05-04",
+  "total": 2,
+  "chapters": [
+    { "id": "ran-1-1", "cap": "1-1", "articleId": "28888", "titulo": "Test capítulo 1-1" },
+    { "id": "ran-1-3", "cap": "1-3", "articleId": "28889", "titulo": "Test capítulo 1-3" }
+  ]
+}
