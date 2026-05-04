@@ -16,6 +16,8 @@ export function getDb() {
   const sqlite = new Database(DB_PATH);
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
+  sqlite.pragma("cache_size = -40000"); // 40 MB — cabe toda la DB en RAM
+  sqlite.pragma("temp_store = MEMORY"); // tablas temporales en RAM (GROUP BY, sort)
   _db = drizzle(sqlite, { schema });
   return _db;
 }

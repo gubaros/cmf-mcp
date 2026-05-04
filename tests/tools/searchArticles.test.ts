@@ -17,12 +17,9 @@ const HIT = {
   url_oficial: "https://www.cmfchile.cl/portal/principal/613/articles-28888_doc_pdf.pdf",
 };
 
-function makeDb(hits: (typeof HIT)[], total: number) {
+function makeDb(hits: (typeof HIT)[]) {
   return {
-    all: vi
-      .fn()
-      .mockReturnValueOnce(hits)
-      .mockReturnValueOnce([{ n: total }]),
+    all: vi.fn().mockReturnValueOnce(hits),
   } as unknown as ReturnType<typeof getDb>;
 }
 
@@ -30,9 +27,8 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("searchArticlesHandler", () => {
   it("retorna hits mapeados correctamente", async () => {
-    mockGetDb.mockReturnValue(makeDb([HIT], 1));
+    mockGetDb.mockReturnValue(makeDb([HIT]));
     const result = await searchArticlesHandler({ q: "entidades bancarias" });
-    expect(result.total).toBe(1);
     expect(result.items).toHaveLength(1);
     expect(result.items[0]?.articleId).toBe("ran-1-13-art-3");
     expect(result.items[0]?.urlOficial).toBe(HIT.url_oficial);
@@ -40,14 +36,13 @@ describe("searchArticlesHandler", () => {
   });
 
   it("retorna vacío cuando no hay resultados", async () => {
-    mockGetDb.mockReturnValue(makeDb([], 0));
+    mockGetDb.mockReturnValue(makeDb([]));
     const result = await searchArticlesHandler({ q: "inexistente" });
-    expect(result.total).toBe(0);
     expect(result.items).toHaveLength(0);
   });
 
   it("respeta limit máximo de 50", async () => {
-    mockGetDb.mockReturnValue(makeDb([], 0));
+    mockGetDb.mockReturnValue(makeDb([]));
     const result = await searchArticlesHandler({ q: "test", limit: 999 });
     expect(result.items).toHaveLength(0);
   });
