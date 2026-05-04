@@ -1,6 +1,6 @@
 {
   "name": "@gubaros/cmf-mcp",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Servidor MCP que expone normativa CMF (Chile) a clientes MCP",
   "license": "SEE LICENSE IN LICENSE",
   "author": "Guido Barosio",
