@@ -14,6 +14,7 @@ export type IngestStats = {
   inserted: number;
   skipped: number;
   errors: number;
+  errorList: Array<{ id: string; error: string }>;
   byMethod: { native: number; ocr: number };
 };
 
@@ -122,10 +123,15 @@ export async function ingestAll(entries: IndexEntry[]): Promise<IngestStats> {
     inserted: 0,
     skipped: 0,
     errors: 0,
+    errorList: [],
     byMethod: { native: 0, ocr: 0 },
   };
 
-  const results = await Promise.all(entries.map((e) => limit(() => ingestOne(e, db))));
+  const results = await Promise.all(
+    entries.map((e, i) =>
+      limit(() => ingestOne(e, db).then((r) => ({ ...r, id: entries[i]?.id ?? "" }))),
+    ),
+  );
 
   for (const r of results) {
     if (r.status === "inserted") {
@@ -135,6 +141,7 @@ export async function ingestAll(entries: IndexEntry[]): Promise<IngestStats> {
       stats.skipped++;
     } else {
       stats.errors++;
+      stats.errorList.push({ id: r.id, error: r.error ?? "unknown" });
     }
   }
 

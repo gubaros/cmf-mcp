@@ -12,7 +12,7 @@ async function main() {
       .filter(Boolean)
       .map((line) => JSON.parse(line) as IndexEntry);
   } catch {
-    console.error("[ingest] No se encontró data/index.jsonl — corré pnpm scrape primero");
+    console.error("[ingest] No se encontró data/index.jsonl — corré pnpm discover primero");
     process.exit(1);
   }
 
@@ -22,7 +22,9 @@ async function main() {
     `[ingest] Listo: inserted=${stats.inserted} skipped=${stats.skipped} errors=${stats.errors} ` +
       `(native=${stats.byMethod.native} ocr=${stats.byMethod.ocr})`,
   );
-  if (stats.errors > 0) process.exit(1);
+  for (const e of stats.errorList) {
+    console.error(`  [error] ${e.id}: ${e.error}`);
+  }
 }
 
 main().catch((err) => {
