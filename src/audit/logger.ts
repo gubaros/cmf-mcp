@@ -1,4 +1,5 @@
 import { appendFileSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
 export type AuditEntry = {
@@ -14,7 +15,8 @@ export type AuditEntry = {
   corpusVersion: string | null;
 };
 
-const LOG_DIR = process.env.CMF_LOG_DIR ?? "data/logs";
+const DATA_DIR = process.env.CMF_DATA_DIR ?? join(homedir(), ".cmf-mcp");
+const LOG_DIR = process.env.CMF_LOG_DIR ?? join(DATA_DIR, "logs");
 const IS_DEV = process.env.NODE_ENV !== "production";
 
 function todayFile(): string {

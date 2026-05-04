@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../src/db/client", () => ({ getDb: vi.fn() }));
+vi.mock("../../src/db/client", () => ({
+  getDb: vi.fn(),
+  DATA_DIR: "/test/data",
+  DB_PATH: "/test/data/cmf_norms.db",
+}));
 
 import { getDb } from "../../src/db/client";
 import { serverInfoHandler } from "../../src/tools/serverInfo";
@@ -44,6 +48,10 @@ describe("serverInfoHandler", () => {
     expect(result.normasValidadas).toBe(0);
     expect(result.version).toBe("0.1.0");
     expect(result.repoUrl).toBe("https://github.com/gubaros/cmf-mcp");
+    expect(result.dataDir).toBe("/test/data");
+    expect(typeof result.dataDirWritable).toBe("boolean");
+    expect(typeof result.dbInitialized).toBe("boolean");
+    expect(result.scrapeStale).toBe(true);
   });
 
   it("retorna conteos correctos con datos en DB", async () => {
@@ -65,5 +73,20 @@ describe("serverInfoHandler", () => {
     expect(result.porSector).toEqual({ BANCARIO: 20, VALORES: 22 });
     expect(result.ultimoScrape).toBe("2026-05-01");
     expect(result.normasValidadas).toBe(15);
+    expect(result.dataDir).toBe("/test/data");
+    // 2026-05-01 is recent — not stale
+    expect(result.scrapeStale).toBe(false);
+  });
+
+  it("retorna healthcheck fields en el catch path", async () => {
+    mockGetDb.mockImplementation(() => {
+      throw new Error("DB no disponible");
+    });
+
+    const result = await serverInfoHandler({} as never);
+
+    expect(result.totalNormas).toBe(0);
+    expect(result.dataDir).toBe("/test/data");
+    expect(result.scrapeStale).toBe(true);
   });
 });

@@ -57,11 +57,9 @@ function makeDb(overrides: {
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
     all: vi.fn().mockReturnValue(overrides.articles ?? [EXISTING_ARTICLE]),
-    update: vi
-      .fn()
-      .mockReturnValue({
-        set: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ run: updateRun }) }),
-      }),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ run: updateRun }) }),
+    }),
     delete: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ run: deleteRun }) }),
     insert: vi
       .fn()
@@ -111,11 +109,9 @@ describe("applyNormUpdate", () => {
       from: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
       all: vi.fn().mockReturnValue([EXISTING_ARTICLE]),
-      update: vi
-        .fn()
-        .mockReturnValue({
-          set: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ run: vi.fn() }) }),
-        }),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ run: vi.fn() }) }),
+      }),
       delete: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ run: vi.fn() }) }),
       insert: vi.fn().mockReturnValue({
         values: vi.fn().mockImplementation((v: Record<string, unknown>) => {
