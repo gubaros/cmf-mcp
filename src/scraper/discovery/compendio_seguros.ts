@@ -83,7 +83,10 @@ export async function fetchCompendioSeguros(): Promise<IndexEntry[]> {
 
   if (statusCode !== 200) {
     await body.dump();
-    throw new Error(`Compendio Seguros index returned HTTP ${statusCode}`);
+    // Non-fatal: Compendio Seguros index URL is unstable — skip and continue discovery.
+    // TODO HdU-07c: locate correct CMF portal page for Compendio Seguros index.
+    console.warn(`[compendio_seguros] index returned HTTP ${statusCode} — skipping`);
+    return [];
   }
 
   const html = await body.text();

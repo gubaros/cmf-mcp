@@ -9,17 +9,21 @@ const USER_AGENT = "cmf-mcp/0.1 (+https://github.com/gubaros/cmf-mcp)";
 export type TipoForm = "NCG" | "CIR" | "OFC";
 export type Mercado = "V" | "S";
 
-// Column indices in the normativa2.php results table
+// Column indices in the normativa2.php results table (18 columns total):
+// 0=Tipo 1=Número 2=Fecha 3=Título 4=TextoRefundido 5=InformeNormativo
+// 6-8=Resolución(Nro,Fecha,Referencia) 9-10=ModificaA(Nro,Fecha)
+// 11-12=ModificadaPor(Nro,Fecha) 13-14=DerogaA(Nro,Fecha)
+// 15-16=DerogadaPor(Nro,Fecha) 17=Vigencia
 const COL = {
   TIPO: 0,
   NUMERO: 1,
   FECHA: 2,
   TITULO: 3,
-  MODIFICA: 7,
-  MODIFICADA_POR: 8,
-  DEROGA: 9,
-  DEROGADA_POR: 10,
-  VIGENCIA: 11,
+  MODIFICA: 9,
+  MODIFICADA_POR: 11,
+  DEROGA: 13,
+  DEROGADA_POR: 15,
+  VIGENCIA: 17,
 } as const;
 
 function buildId(tipo: TipoForm, numero: string): string {
@@ -33,31 +37,35 @@ function buildPdfUrl(tipo: TipoForm, numero: string, year: string): string {
 }
 
 function parseFecha(raw: string): { iso: string; year: string } | null {
-  // DD-MM-YYYY (format used by CMF)
-  const ddmmyyyy = /^(\d{2})-(\d{2})-(\d{4})$/.exec(raw.trim());
+  const s = raw.trim();
+  // DD/MM/YYYY or DD-MM-YYYY (both used by CMF)
+  const ddmmyyyy = /^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/.exec(s);
   if (ddmmyyyy) {
     const [, dd, mm, yyyy] = ddmmyyyy;
     return { iso: `${yyyy}-${mm}-${dd}`, year: yyyy ?? "" };
   }
   // ISO fallback
-  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.trim());
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
   if (isoMatch) {
-    return { iso: raw.trim(), year: isoMatch[1] ?? "" };
+    return { iso: s, year: isoMatch[1] ?? "" };
   }
   return null;
 }
 
-function parseEstado(raw: string): EstadoVigencia {
-  const v = raw.trim().toUpperCase();
-  if (v.includes("DEROG")) return EstadoVigencia.DEROGADA;
-  if (v.includes("MODIF")) return EstadoVigencia.MODIFICADA;
-  if (v.includes("SUSPENDID")) return EstadoVigencia.SUSPENDIDA;
-  return EstadoVigencia.VIGENTE;
+function parseEstado(vigenciaRaw: string): EstadoVigencia {
+  // normativa2.php encodes non-vigente norms as "NoVigente"; empty = VIGENTE
+  return vigenciaRaw.trim() === "NoVigente" ? EstadoVigencia.DEROGADA : EstadoVigencia.VIGENTE;
 }
 
-function parseNormRefs(raw: string): string[] {
+// Parses norm references from a table cell. The real CMF HTML contains plain
+// numbers (e.g. "550") without type prefix. We default to same type as the
+// parent norm; cross-type references will appear as "desaparecidas" in the index.
+function parseNormRefs(raw: string, defaultTipo: TipoForm): string[] {
+  const defaultPrefix = defaultTipo === "NCG" ? "ncg" : defaultTipo === "CIR" ? "circ" : "ofc";
   const seen = new Set<string>();
   const result: string[] = [];
+
+  // Explicit "TYPE N°num" pattern (tests/fixtures may use this form)
   for (const m of raw.matchAll(/\b(NCG|CIR|OFC)\s*N[°º]?\s*(\d+)/gi)) {
     const tipoRaw = m[1]?.toUpperCase() ?? "";
     const num = m[2] ?? "";
@@ -68,6 +76,19 @@ function parseNormRefs(raw: string): string[] {
       result.push(id);
     }
   }
+
+  // Plain numbers (actual CMF format): only use if no typed refs were found
+  if (result.length === 0) {
+    for (const m of raw.matchAll(/\b(\d{1,5})\b/g)) {
+      const num = m[1] ?? "";
+      const id = `${defaultPrefix}-${num}`;
+      if (!seen.has(id)) {
+        seen.add(id);
+        result.push(id);
+      }
+    }
+  }
+
   return result;
 }
 
@@ -108,10 +129,10 @@ export function parseNormativa2Html(
       fechaEmision: fecha.iso,
       estado: parseEstado(cells.eq(COL.VIGENCIA).text()),
       urlPdf: buildPdfUrl(tiponorma, numero, fecha.year),
-      modifica: parseNormRefs(cells.eq(COL.MODIFICA).text()),
-      modificadaPor: parseNormRefs(cells.eq(COL.MODIFICADA_POR).text()),
-      deroga: parseNormRefs(cells.eq(COL.DEROGA).text()),
-      derogadaPor: parseNormRefs(cells.eq(COL.DEROGADA_POR).text()),
+      modifica: parseNormRefs(cells.eq(COL.MODIFICA).text(), tiponorma),
+      modificadaPor: parseNormRefs(cells.eq(COL.MODIFICADA_POR).text(), tiponorma),
+      deroga: parseNormRefs(cells.eq(COL.DEROGA).text(), tiponorma),
+      derogadaPor: parseNormRefs(cells.eq(COL.DEROGADA_POR).text(), tiponorma),
     });
   });
 
