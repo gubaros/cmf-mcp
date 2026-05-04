@@ -40,12 +40,15 @@ function makeEntry(id: string, urlPdf: string): IndexEntry {
   };
 }
 
-function okResponse(content = "PDF-CONTENT"): ReturnType<typeof request> {
+function okResponse(content = "%PDF-1.6 fake content"): ReturnType<typeof request> {
+  // Slice the ArrayBuffer to ensure it starts at offset 0 (avoids Node.js pool offset issue)
+  const bytes = Buffer.from(content);
+  const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
   return Promise.resolve({
     statusCode: 200,
     headers: { "last-modified": "Mon, 04 May 2026 00:00:00 GMT" },
     body: {
-      arrayBuffer: () => Promise.resolve(Buffer.from(content).buffer),
+      arrayBuffer: () => Promise.resolve(ab),
       dump: () => Promise.resolve(),
     },
   }) as unknown as ReturnType<typeof request>;

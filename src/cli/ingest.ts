@@ -4,7 +4,7 @@ import { ingestAll } from "../ingest/loader";
 import type { IndexEntry } from "../shared/types";
 
 async function main() {
-  const indexPath = resolve("data/index.jsonl");
+  const indexPath = process.env.CMF_INDEX_PATH ?? resolve("data/index.jsonl");
   let entries: IndexEntry[];
   try {
     entries = readFileSync(indexPath, "utf8")
