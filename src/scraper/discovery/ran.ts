@@ -32,6 +32,33 @@ function seedToEntries(chapters: SeedChapter[]): IndexEntry[] {
   }));
 }
 
+// Parse the live portal page to refresh the seed.
+export function parseRanPortalHtml(html: string): SeedChapter[] {
+  const chapters: SeedChapter[] = [];
+  const seen = new Set<string>();
+
+  for (const m of html.matchAll(
+    /<h4[^>]+aid-(\d+)[^>]*>\s*Cap[ií]tulo\s+([\d]+-[\d]+)\s+([^<]{0,200})<\/h4>/gi,
+  )) {
+    const [, articleId, cap, titulo] = m;
+    if (!articleId || !cap || !titulo) continue;
+    const parts = cap.split("-");
+    const id = `ran-${parts[0]}-${parts[1]}`;
+    const key = `${id}:${articleId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    chapters.push({ id, cap, articleId, titulo: titulo.trim() });
+  }
+
+  chapters.sort((a, b) => {
+    const [a1, a2] = a.cap.split("-").map(Number);
+    const [b1, b2] = b.cap.split("-").map(Number);
+    return a1 !== b1 ? (a1 ?? 0) - (b1 ?? 0) : (a2 ?? 0) - (b2 ?? 0);
+  });
+
+  return chapters;
+}
+
 // Primary discovery: read from versioned seed file in the repo.
 export function fetchRanFromSeed(seedPath = SEED_PATH): IndexEntry[] {
   const seed = JSON.parse(readFileSync(seedPath, "utf8")) as SeedFile;
