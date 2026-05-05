@@ -66,6 +66,55 @@ conforme a los criterios establecidos en el Capítulo 21-11 de esta Recopilació
 de Normas, con las limitaciones y condiciones que se señalan a continuación.
 `.trim();
 
+// RAN 20-7 pattern: TÍTULO I / TÍTULO II / ANEXO N° headings
+const RAN_TITULO_ESTRUCTURA = `
+TÍTULO I - Definiciones
+
+Para los efectos de esta norma se entenderá por proveedor externo aquel que
+proporciona infraestructura tecnológica crítica. Las definiciones aquí contenidas
+son de carácter amplio y deben interpretarse en concordancia con la normativa
+vigente de la Comisión para el Mercado Financiero y sus instrucciones conexas.
+
+TÍTULO II - Requisitos generales
+
+Las instituciones reguladas deberán adoptar medidas de seguridad adecuadas
+para garantizar la continuidad operacional y la protección de los datos de sus
+clientes, conforme a los estándares internacionales aplicables al sector financiero.
+
+TÍTULO III - Procedimientos de revisión
+
+La Comisión podrá requerir información a las instituciones en cualquier momento
+y estas deberán proporcionarla en el plazo que se indique mediante resolución,
+sin perjuicio de las facultades de inspección que le otorga la ley vigente.
+
+ANEXO N° 1 - Formulario de evaluación
+
+Las instituciones completarán los campos indicados en el presente formulario
+de acuerdo con las instrucciones publicadas en el sitio web de la Comisión
+para el Mercado Financiero, en la sección de normativa aplicable.
+`.trim();
+
+// Same structure with PDF running headers injected between sections
+const RAN_CON_HEADERS_PDF = `
+RECOPILACION ACTUALIZADA DE NORMAS
+Capítulo 20-7
+Hoja N° 1
+
+TÍTULO I - Definiciones
+
+Para los efectos de esta norma se entenderá por proveedor externo aquel que
+proporciona infraestructura tecnológica crítica y que actúa en nombre de la
+institución financiera regulada, conforme a la ley.
+
+Circular N° 3.629 / 27.12.2017
+
+TÍTULO II - Requisitos
+
+Las instituciones reguladas deberán adoptar medidas de seguridad adecuadas
+para garantizar la continuidad operacional conforme a la normativa vigente
+de la Comisión para el Mercado Financiero y demás instrucciones aplicables.
+`.trim();
+
 describe("segmentNorm", () => {
   it("NCG sustantiva: segmenta artículos reales correctamente", () => {
     const { mode, articles } = segmentNorm("ncg-test", NCG_SUBSTANTIVE);
@@ -107,6 +156,36 @@ describe("segmentNorm", () => {
     expect(articles).toHaveLength(2);
     for (const art of articles) {
       expect(art.texto.length).toBeGreaterThan(MIN_BODY_LEN_CHECK);
+    }
+  });
+
+  it("RAN con TÍTULO/ANEXO (ran-20-7): segmenta en unidades atómicas con rubrica", () => {
+    const { mode, articles } = segmentNorm("ran-20-7", RAN_TITULO_ESTRUCTURA);
+    expect(mode).toBe("substantive");
+    // TÍTULO I, II, III + ANEXO N° 1 = 4 unidades
+    expect(articles).toHaveLength(4);
+    expect(articles[0]?.numero).toBe("I");
+    expect(articles[1]?.numero).toBe("II");
+    expect(articles[2]?.numero).toBe("III");
+    expect(articles[3]?.numero).toBe("Anexo-1");
+    // rubrica poblada desde el heading
+    expect(articles[0]?.rubrica).toBe("Definiciones");
+    expect(articles[3]?.rubrica).toContain("Anexo N° 1");
+    for (const art of articles) {
+      expect(art.texto.length).toBeGreaterThan(MIN_BODY_LEN_CHECK);
+    }
+  });
+
+  it("RAN con headers PDF: headers stripeados, estructura preservada", () => {
+    const { mode, articles } = segmentNorm("ran-20-7-b", RAN_CON_HEADERS_PDF);
+    expect(mode).toBe("substantive");
+    expect(articles).toHaveLength(2);
+    // Headers de PDF no deben aparecer en el texto
+    for (const art of articles) {
+      expect(art.texto).not.toContain("RECOPILACION ACTUALIZADA DE NORMAS");
+      expect(art.texto).not.toContain("Capítulo 20-7");
+      expect(art.texto).not.toContain("Hoja N°");
+      expect(art.texto).not.toMatch(/^Circular\s+N[°º]\s*[\d.]+\s*\//m);
     }
   });
 });
