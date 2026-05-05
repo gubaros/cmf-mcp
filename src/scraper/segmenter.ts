@@ -22,7 +22,9 @@ export type SegmentResult = {
 // Negative lookahead: rejects inline citations like "artículo 65 de la Ley General de Bancos".
 // Without both constraints, inline LGB references shred RAN chapter bodies into fragments.
 // No `s` flag intentionally: `.` stops at \n so each match covers exactly one header line.
-const RE_ARTICULO_HEADER = /^Artículo\s+(?:N[°º]?\s*)?(\d+)(?!\s+de\s+la\b)[\s.:-]*(.*)/gim;
+// Captures ordinal suffixes (bis, ter, quinquies…) as part of the number so they
+// don't bleed into the rubric. Negative lookahead still rejects "de la Ley".
+const RE_ARTICULO_HEADER = /^Artículo\s+(?:N[°º]?\s*)?(\d+[°º]?\s*(?:bis|ter|qu[aá]ter|quinquies|sexies)?)(?!\s+de\s+la\b)[\s.:-]*(.*)/gim;
 
 // RAN chapters (e.g. 20-7) use TÍTULO I / TÍTULO II / ANEXO N° 1 headings.
 // The T[IÍ] covers both the accented (TÍTULO) and unaccented (TITULO) variants.
@@ -47,6 +49,10 @@ const RE_PDF_CHAPTER_REF = /^Cap[ií]tulo\s+\d+[-–]\d+\s*$/gim;
 const RE_PDF_PAGE_NUM = /^Hoja\s+(?:N[°º]?\s*)?\d+\s*$/gim;
 // "ANEXO N° 1 Hoja 2" — annex running header that includes the annexe number
 const RE_PDF_ANEXO_HOJA = /^ANEXO\s+N[°º]?\s*\d+\s+Hoja\s+\d+\s*$/gim;
+// "ANEXO N°1" standalone line (ALL CAPS only, no 'i' flag) — repeated section title
+// that OCR embeds at the top of each annex page. Lowercase "Anexo N°1" is the real
+// heading and is kept; uppercase repetitions are artifacts.
+const RE_PDF_ANEXO_STANDALONE_CAPS = /^ANEXO\s+N[°º]?\s*\d+\s*$/gm;
 // "Circular N° 3.629 / 27.12.2017" — date separators can be . - or /
 const RE_PDF_CIRCULAR_HEADER =
   /^Circular\s+N[°º]\s*[\d.]+\s*\/\s*\d{2}[.\-/]\d{2}[.\-/]\d{4}\s*$/gim;
@@ -64,6 +70,7 @@ function stripPdfArtifacts(text: string): string {
     .replace(RE_PDF_RAN_HEADER, "")
     .replace(RE_PDF_CHAPTER_REF, "")
     .replace(RE_PDF_ANEXO_HOJA, "")
+    .replace(RE_PDF_ANEXO_STANDALONE_CAPS, "")
     .replace(RE_PDF_PAGE_NUM, "")
     .replace(RE_PDF_CIRCULAR_HEADER, "")
     .replace(/\n{3,}/g, "\n\n")
@@ -74,7 +81,11 @@ function stripPdfArtifacts(text: string): string {
 // producing desc = "ANEXO N°1" and rubrica = "Anexo N° 1 — ANEXO N°1".
 // Strip any leading self-referential "ANEXO N°X" from desc before building rubrica.
 function buildAnexoRubrica(num: string, desc: string): string {
-  const cleaned = desc.replace(/^ANEXO\s*N[°º]?\s*\d+\s*[-–—]?\s*/i, "").trim();
+  const cleaned = desc
+    .replace(/^ANEXO\s*N[°º]?\s*\d+\s*[-–—]?\s*/i, "")
+    .replace(/^[-–—\s]+/, "")
+    .replace(/\s*[-–—]?\s*Hoja\s+(?:N[°º]?\s*)?\d+\s*$/i, "")
+    .trim();
   return cleaned ? `Anexo N° ${num} — ${cleaned}` : `Anexo N° ${num}`;
 }
 
@@ -100,7 +111,8 @@ function splitOnArticulos(
     boundaries.push({
       start: m.index ?? 0,
       headerEnd: (m.index ?? 0) + m[0].length,
-      numero: m[1] ?? "",
+      // Normalize ordinal suffixes: "66 quinquies" → "66-quinquies"
+      numero: (m[1] ?? "").trim().replace(/\s+/g, "-"),
       restOfLine: (m[2] ?? "").trim(),
     });
   }
@@ -116,6 +128,15 @@ function splitOnArticulos(
 
     // Full content = tail of the header line + all subsequent lines until next article
     const afterHeader = text.slice(b.headerEnd, nextStart).trim();
+
+    // OCR-split / no-space inline citation guard.  Three forms of spurious match:
+    //   (a) "artículo 66\nde la LGB"  → empty restOfLine, afterHeader starts "de la …"
+    //   (b) "artículo 6\n6 de la LGB" → empty restOfLine, afterHeader starts "digit de la …"
+    //   (c) "artículo 66de la LGB"    → OCR omits space, restOfLine starts "de la …"
+    // All three indicate a cross-reference, not a real article header.
+    if (!b.restOfLine && /^(?:\d+\s+)?de\s+l[ao]/i.test(afterHeader)) return null;
+    if (/^de\s+l[ao]\b/i.test(b.restOfLine)) return null;
+
     const fullContent = b.restOfLine ? `${b.restOfLine}\n${afterHeader}`.trim() : afterHeader;
 
     // First line may be a rubric (short, no trailing period, more content follows)
@@ -126,6 +147,14 @@ function splitOnArticulos(
     if (firstLine && firstLine.length < 120 && !firstLine.endsWith(".") && lines.length > 1) {
       rubrica = firstLine;
       body = lines.slice(1).join("\n").trim();
+      // Reconnect OCR hyphen word-break: "docu-" + "mentos…" → "documentos…"
+      if (rubrica.endsWith("-")) {
+        const match = body.match(/^(\S+)(.*)/s);
+        if (match) {
+          rubrica = rubrica.slice(0, -1) + (match[1] ?? "");
+          body = ((match[2] ?? "").trimStart());
+        }
+      }
     }
 
     if (body.length < MIN_BODY_LEN) return null;
@@ -216,10 +245,16 @@ function splitOnTitulos(
     if (rubrica) {
       const bodyLines = body.split("\n");
       const cont = (bodyLines[0] ?? "").trim();
-      if (cont && cont.length < 120 && cont === cont.toUpperCase() && cont.endsWith(".") && bodyLines.length > 1) {
-        rubrica = `${rubrica} ${cont}`;
-        body = bodyLines.slice(1).join("\n").trim();
+      // Keep absorbing consecutive all-caps lines (stop at blank or lowercase)
+      let ci = 0;
+      while (ci < bodyLines.length - 1) {
+        const cl = (bodyLines[ci] ?? "").trim();
+        if (!cl) break;
+        if (cl.length > 80 || cl !== cl.toUpperCase()) break;
+        rubrica = `${rubrica} ${cl}`;
+        ci++;
       }
+      if (ci > 0) body = bodyLines.slice(ci).join("\n").trim();
     }
 
     if (body.length === 0) continue;
@@ -300,10 +335,16 @@ function splitOnRomanSections(
     if (rubrica) {
       const bodyLines = body.split("\n");
       const cont = (bodyLines[0] ?? "").trim();
-      if (cont && cont.length < 120 && cont === cont.toUpperCase() && cont.endsWith(".") && bodyLines.length > 1) {
-        rubrica = `${rubrica} ${cont}`;
-        body = bodyLines.slice(1).join("\n").trim();
+      // Keep absorbing consecutive all-caps lines (stop at blank or lowercase)
+      let ci = 0;
+      while (ci < bodyLines.length - 1) {
+        const cl = (bodyLines[ci] ?? "").trim();
+        if (!cl) break;
+        if (cl.length > 80 || cl !== cl.toUpperCase()) break;
+        rubrica = `${rubrica} ${cl}`;
+        ci++;
       }
+      if (ci > 0) body = bodyLines.slice(ci).join("\n").trim();
     }
 
     if (body.length < MIN_BODY_LEN) return null;
@@ -342,9 +383,18 @@ function splitOnArabicSections(
     const b = boundaries[i];
     if (!b) continue;
     const nextStart = boundaries[i + 1]?.start ?? text.length;
-    const body = text.slice(b.headerEnd, nextStart).trim();
+    let rubrica = b.rubrica;
+    let body = text.slice(b.headerEnd, nextStart).trim();
+    // Reconnect OCR hyphen word-break in the rubric: "median-" + "te" → "mediante"
+    if (rubrica && rubrica.endsWith("-")) {
+      const match = body.match(/^(\S+)(.*)/s);
+      if (match) {
+        rubrica = rubrica.slice(0, -1) + (match[1] ?? "");
+        body = ((match[2] ?? "").trimStart());
+      }
+    }
     if (body.length < MIN_BODY_LEN) return null;
-    segments.push({ numero: b.numero, rubrica: b.rubrica, body });
+    segments.push({ numero: b.numero, rubrica, body });
   }
 
   return segments.length >= 2 ? segments : null;

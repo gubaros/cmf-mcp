@@ -343,6 +343,123 @@ describe("segmentNorm", () => {
     expect(art2?.texto).not.toMatch(/^EXTERNALIZACIÓN DE SERVICIOS/);
   });
 
+  // ---- Second bug-report patterns ----
+
+  it("Bug B — artículo con sufijo ordinal (quinquies): numero incluye sufijo, rubrica limpia", () => {
+    const text = [
+      "Artículo 66 quinquies.- Requisitos de capital adicional",
+      "",
+      "Las instituciones deberán mantener un colchón de capital adicional conforme a los",
+      "criterios establecidos en la normativa vigente de la Comisión para el Mercado Financiero,",
+      "complementando las exigencias del artículo 66 de la Ley General de Bancos en todo momento.",
+    ].join("\n");
+    const text2 = [
+      "Artículo 1.- Definiciones generales",
+      "",
+      "Para efectos de esta norma se entiende por capital básico aquel exigido conforme",
+      "a los criterios prudenciales de la Comisión para el Mercado Financiero vigentes.",
+    ].join("\n");
+    // Single-article → modifier (< 2 real headers); test via a two-article fixture
+    const twoArt = `${text}\n\n${text2}`;
+    const { articles } = segmentNorm("ran-21-13", twoArt);
+    const art66q = articles.find((a) => a.numero.includes("66"));
+    expect(art66q).toBeDefined();
+    expect(art66q?.numero).toBe("66-quinquies");
+    expect(art66q?.rubrica).toBe("Requisitos de capital adicional");
+    expect(art66q?.rubrica).not.toMatch(/quinquies/i);
+  });
+
+  it("Bug B — cita LGB OCR-split en línea (artículo 6\\n6 de la LGB): no genera artículo espurio", () => {
+    // OCR splits "artículo 66 de la LGB" across two lines: "artículo 6\n6 de la LGB..."
+    // splitOnArticulos must bail out and let splitOnDispositivos handle the norm.
+    const text = [
+      "Las entidades sujetas al artículo 6",
+      "6 de la Ley General de Bancos deberán cumplir con las exigencias mínimas de capital",
+      "establecidas por la Comisión para el Mercado Financiero conforme a esta norma vigente.",
+      "Asimismo, según el artículo 7",
+      "0 de la misma ley, se considerarán las reservas técnicas y los ajustes regulatorios",
+      "indicados por la Comisión en las instrucciones complementarias que se emitan al efecto.",
+    ].join("\n");
+    const { articles } = segmentNorm("ran-11-6", text);
+    // Should fall through to dispositivos (1 article), not produce multiple spurious ones
+    for (const art of articles) {
+      expect(art.rubrica ?? "").not.toMatch(/^\d+\s+de\s+/i);
+    }
+  });
+
+  it("Bug A — rúbrica multilínea sin punto final: continuación unida aunque no termine en punto", () => {
+    const text = [
+      "III. AJUSTES REGULATORIOS Y EXCLUSIONES DE PARTIDAS DE",
+      "ACTIVOS O PASIVOS EN LOS COMPONENTES DE CAPITAL",
+      "",
+      "En esta sección se detallan los ajustes regulatorios y exclusiones de partidas de activos",
+      "o pasivos que deben aplicarse sobre los componentes de capital básico y patrimonio efectivo",
+      "conforme a la normativa vigente de la Comisión para el Mercado Financiero en materia.",
+      "",
+      "IV. SOBRE LA MEDICIÓN DE LOS LÍMITES LEGALES Y",
+      "APLICACIÓN DE ESTA NORMA",
+      "",
+      "El capital básico y patrimonio efectivo, una vez efectuados los ajustes regulatorios,",
+      "se emplean para verificar los límites legales establecidos en la Ley General de Bancos",
+      "y en las instrucciones impartidas por la Comisión para el Mercado Financiero vigentes.",
+    ].join("\n");
+    const { articles } = segmentNorm("ran-21-1", text);
+    const art3 = articles.find((a) => a.numero === "III");
+    const art4 = articles.find((a) => a.numero === "IV");
+    expect(art3?.rubrica).toContain("ACTIVOS O PASIVOS");
+    expect(art4?.rubrica).toContain("APLICACIÓN DE ESTA NORMA");
+    // Continuation must not bleed into text body
+    expect(art3?.texto).not.toMatch(/^ACTIVOS O PASIVOS/);
+    expect(art4?.texto).not.toMatch(/^APLICACIÓN DE ESTA NORMA/);
+  });
+
+  it("Bug A_HYPHEN — rúbrica con guion OCR: palabra reconstituida correctamente", () => {
+    // OCR splits "documentos" as "docu-\nmentos" within an article rubric
+    const text = [
+      "Artículo 3.- Giro de los importes depositados y liberación de docu-",
+      "mentos antes de obtenerse el pago de los valores en cobro.",
+      "",
+      "Las retenciones señaladas en las instrucciones anteriores se liberarán una vez que",
+      "el banco haya recibido confirmación de pago de los documentos remitidos al cobro",
+      "conforme a los plazos establecidos por la Comisión para el Mercado Financiero vigente.",
+      "",
+      "Artículo 4.- Prohibición de pagar cheques a cargo de otros bancos.",
+      "",
+      "En relación con la naturaleza jurídica de las operaciones, los bancos no podrán pagar",
+      "cheques a cargo de otras instituciones bancarias salvo las excepciones calificadas que",
+      "establece la normativa vigente de la Comisión para el Mercado Financiero aplicables.",
+    ].join("\n");
+    const { articles } = segmentNorm("ran-3-1", text);
+    const art3 = articles.find((a) => a.numero === "3");
+    expect(art3?.rubrica).not.toMatch(/docu-$/);
+    expect(art3?.rubrica).toContain("documentos");
+    expect(art3?.texto).not.toMatch(/^mentos/);
+  });
+
+  it("Bug D — Anexo con Hoja en rúbrica: rúbrica limpia sin artefacto Hoja N°", () => {
+    const text = [
+      "TÍTULO I - Definiciones",
+      "",
+      "Para los efectos de esta norma se entenderá por institución regulada aquella que",
+      "se encuentra sujeta a la supervisión de la Comisión para el Mercado Financiero.",
+      "",
+      "TÍTULO II - Requisitos generales",
+      "",
+      "Las instituciones deberán adoptar las medidas de seguridad adecuadas conforme a",
+      "los estándares internacionales aplicables al sector financiero supervisado por la Comisión.",
+      "",
+      "ANEXO N° 2 – Hoja N°1",
+      "",
+      "Instrucciones específicas para el formulario de evaluación de proveedores externos",
+      "de servicios tecnológicos críticos, conforme a la normativa de la Comisión vigente.",
+    ].join("\n");
+    const { articles } = segmentNorm("ran-21-1", text);
+    const anexo = articles.find((a) => a.numero === "Anexo-2");
+    expect(anexo).toBeDefined();
+    expect(anexo?.rubrica).not.toMatch(/Hoja/i);
+    expect(anexo?.rubrica).toMatch(/Anexo N° 2/);
+  });
+
   it("RAN con headers PDF: headers stripeados, estructura preservada", () => {
     const { mode, articles } = segmentNorm("ran-20-7-b", RAN_CON_HEADERS_PDF);
     expect(mode).toBe("substantive");
