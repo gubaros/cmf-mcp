@@ -12,12 +12,13 @@ const INDEX_PATH = resolve("data/index.jsonl");
 
 // Norma types covered by normativa2.php for each market
 const TIPOS_NORMATIVA2 = ["NCG", "CIR", "OFC"] as const;
-const MERCADOS = ["V", "S"] as const;
+const MERCADOS = ["V", "S", "B"] as const;
 
 export type DiscoveryThresholds = {
   normativa2Ncg: number;
   normativa2Cir: number;
   normativa2Ofc: number;
+  normativa2Banca: number;
   ran: number;
   compendioSeguros: number;
 };
@@ -26,6 +27,7 @@ export const DEFAULT_THRESHOLDS: DiscoveryThresholds = {
   normativa2Ncg: 300,
   normativa2Cir: 150,
   normativa2Ofc: 30,
+  normativa2Banca: 0, // pending live verification of hidden_mercado=B — raise once confirmed
   ran: 90,
   compendioSeguros: 0, // URL desconocida — no bloquear hasta que esté resuelto
 };
@@ -96,11 +98,13 @@ export async function runDiscovery(
   const ncgCount = normativa2Entries.filter((e) => e.tipo === TipoNorma.NCG).length;
   const cirCount = normativa2Entries.filter((e) => e.tipo === TipoNorma.CIRCULAR).length;
   const ofcCount = normativa2Entries.filter((e) => e.tipo === TipoNorma.OFICIO_CIRC).length;
+  const bancaCount = normativa2Entries.filter((e) => e.sector === "BANCARIO").length;
 
   const checks: Array<[string, number, number]> = [
     ["normativa2_ncg", ncgCount, thresholds.normativa2Ncg],
     ["normativa2_cir", cirCount, thresholds.normativa2Cir],
     ["normativa2_ofc", ofcCount, thresholds.normativa2Ofc],
+    ["normativa2_banca", bancaCount, thresholds.normativa2Banca],
     ["ran", ranEntries.length, thresholds.ran],
     ["compendio_seguros", compendioEntries.length, thresholds.compendioSeguros],
   ];

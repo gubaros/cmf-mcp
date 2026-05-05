@@ -109,8 +109,8 @@ describe("runDiscovery", () => {
     const outPath = resolve(tmpdir(), `index_test_${Date.now()}.jsonl`);
     await runDiscovery(outPath, ZERO_THRESHOLDS);
 
-    // NCG/CIR/OFC × V/S = 6 calls
-    expect(mockFetchNormativa2).toHaveBeenCalledTimes(6);
+    // NCG/CIR/OFC × V/S/B = 9 calls
+    expect(mockFetchNormativa2).toHaveBeenCalledTimes(9);
   });
 });
 

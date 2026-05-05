@@ -44,6 +44,13 @@ describe("parseNormativa2Html", () => {
     expect(entries[0]?.sector).toBe("SEGUROS");
   });
 
+  it("sector BANCARIO para mercado B", () => {
+    const html = loadFixture("ncg_valores.html");
+    const entries = parseNormativa2Html(html, "NCG", "B");
+
+    expect(entries[0]?.sector).toBe("BANCARIO");
+  });
+
   it("retorna vacío con tabla sin filas de datos", () => {
     const html = `<html><body><table><tr>${Array(18).fill("<th>X</th>").join("")}</tr></table></body></html>`;
     const entries = parseNormativa2Html(html, "NCG", "V");
