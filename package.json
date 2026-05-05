@@ -16,6 +16,7 @@
     "scrape": "tsx src/cli/scrape.ts",
     "discover": "tsx src/cli/discover.ts",
     "ingest": "tsx src/cli/ingest.ts",
+    "reset-hashes": "tsx src/cli/reset-hashes.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "build": "tsup",
