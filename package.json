@@ -16,6 +16,7 @@
     "scrape": "tsx src/cli/scrape.ts",
     "discover": "tsx src/cli/discover.ts",
     "ingest": "tsx src/cli/ingest.ts",
+    "reset-hashes": "tsx src/cli/reset-hashes.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "build": "tsup",
@@ -30,13 +31,15 @@
     "drizzle-orm": "^0.45.2",
     "p-limit": "^4.0.0",
     "pdf-parse": "^1.1.1",
-    "pdfjs-dist": "^4.0.0",
     "undici": "^6.0.0",
-    "uuid": "^14.0.0",
     "zod": "^3.23.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@biomejs/biome", "better-sqlite3", "esbuild"]
+    "onlyBuiltDependencies": [
+      "@biomejs/biome",
+      "better-sqlite3",
+      "esbuild"
+    ]
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",

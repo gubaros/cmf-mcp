@@ -115,6 +115,30 @@ para garantizar la continuidad operacional conforme a la normativa vigente
 de la Comisión para el Mercado Financiero y demás instrucciones aplicables.
 `.trim();
 
+// ran-20-7 realistic: Roman-numeral sections + ANEXO (no TÍTULO keyword)
+const RAN_ROMAN_CON_ANEXOS = `
+I. ÁMBITO DE APLICACIÓN
+
+La presente norma aplica a todas las instituciones que presten servicios
+de externalización de procesos o funciones. Las disposiciones aquí contenidas
+son de carácter obligatorio y complementan las instrucciones generales de la
+Comisión para el Mercado Financiero y demás normativa aplicable a las entidades
+bancarias fiscalizadas conforme a la Ley General de Bancos vigente.
+
+II. REQUISITOS DE EXTERNALIZACIÓN
+
+Las entidades deberán contar con políticas y procedimientos formales para la
+gestión de proveedores de servicios externalizados, conforme a los estándares
+internacionales aplicables al sector financiero regulado por la Comisión y en
+concordancia con las instrucciones que se dicten mediante circular o resolución.
+
+ANEXO N° 1 - Formulario de evaluación
+
+Instrucciones específicas para completar los campos requeridos en este formulario
+de evaluación de proveedores externos, conforme a la normativa vigente de la
+Comisión para el Mercado Financiero en materia de externalización de servicios.
+`.trim();
+
 describe("segmentNorm", () => {
   it("NCG sustantiva: segmenta artículos reales correctamente", () => {
     const { mode, articles } = segmentNorm("ncg-test", NCG_SUBSTANTIVE);
@@ -127,14 +151,14 @@ describe("segmentNorm", () => {
     }
   });
 
-  it("RAN con referencias LGB inline (ran-1-13): no fragmenta el body", () => {
+  it("RAN con referencias LGB inline (ran-1-13): secciones romanas segmentadas, sin fragmentos LGB", () => {
     const { mode, articles } = segmentNorm("ran-1-13", RAN_LGB_INLINE);
-    // Inline LGB refs are NOT article headers — must not split on them
-    expect(mode).toBe("modifier");
-    // Body is preserved: total text >= 50% of source
-    const total = articles.reduce((s, a) => s + a.texto.length, 0);
-    expect(total).toBeGreaterThan(RAN_LGB_INLINE.length * 0.5);
-    // No fragment shorter than threshold
+    // Roman headers I. and II. are real structural sections → mode substantive
+    // Inline LGB citations ("artículo 65 de la LGB") do NOT generate additional splits
+    expect(mode).toBe("substantive");
+    expect(articles).toHaveLength(2);
+    expect(articles[0]?.numero).toBe("I");
+    expect(articles[1]?.numero).toBe("II");
     for (const art of articles) {
       expect(art.texto.length).toBeGreaterThan(MIN_BODY_LEN_CHECK);
     }
@@ -171,6 +195,21 @@ describe("segmentNorm", () => {
     // rubrica poblada desde el heading
     expect(articles[0]?.rubrica).toBe("Definiciones");
     expect(articles[3]?.rubrica).toContain("Anexo N° 1");
+    for (const art of articles) {
+      expect(art.texto.length).toBeGreaterThan(MIN_BODY_LEN_CHECK);
+    }
+  });
+
+  it("RAN con secciones I. + ANEXO (ran-20-7 realista): segmenta cuerpo y anexos", () => {
+    const { mode, articles } = segmentNorm("ran-20-7", RAN_ROMAN_CON_ANEXOS);
+    expect(mode).toBe("substantive");
+    expect(articles).toHaveLength(3); // I, II, Anexo-1
+    expect(articles[0]?.numero).toBe("I");
+    expect(articles[1]?.numero).toBe("II");
+    expect(articles[2]?.numero).toBe("Anexo-1");
+    expect(articles[0]?.rubrica).toBe("ÁMBITO DE APLICACIÓN");
+    expect(articles[1]?.rubrica).toBe("REQUISITOS DE EXTERNALIZACIÓN");
+    expect(articles[2]?.rubrica).toContain("Anexo N° 1");
     for (const art of articles) {
       expect(art.texto.length).toBeGreaterThan(MIN_BODY_LEN_CHECK);
     }
