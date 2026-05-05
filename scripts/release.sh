@@ -4,13 +4,13 @@
 #
 # Prerrequisitos:
 #   - gh autenticado (gh auth login)
-#   - data/cmf_norms.db existente y con ingest completo
+#   - cmf_norms.db existente y con ingest completo (default: ~/.cmf-mcp/cmf_norms.db)
 #   - pnpm build exitoso
 
 set -euo pipefail
 
 VERSION="v0.1.0"
-DB_PATH="data/cmf_norms.db"
+DB_PATH="${CMF_DB_PATH:-${CMF_DATA_DIR:-$HOME/.cmf-mcp}/cmf_norms.db}"
 CORPUS_TAG="corpus-$(date +%Y.%m.%d)"
 
 # Verificaciones previas
@@ -38,7 +38,7 @@ Primer release público. Incluye normativa CMF (Chile): **NCG · Circulares · O
 
 ### Descarga
 
-Descarga \`cmf_norms.db\` y colócala en \`data/\` del repo. Ver [README](https://github.com/gubaros/cmf-mcp#inicio-rápido) para instrucciones completas.
+Descarga \`cmf_norms.db\` y colócala en \`~/.cmf-mcp/\` (o define \`CMF_DATA_DIR\`). Ver [README](https://github.com/gubaros/cmf-mcp#inicio-rápido) para instrucciones completas.
 
 ### Verificación de integridad
 
@@ -48,7 +48,7 @@ Tamaño: $DB_SIZE
 \`\`\`
 
 \`\`\`bash
-shasum -a 256 data/cmf_norms.db
+shasum -a 256 ~/.cmf-mcp/cmf_norms.db
 \`\`\`
 
 ### Cobertura del corpus

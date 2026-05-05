@@ -7,7 +7,7 @@ import { BROWSER_HEADERS, CMF_DISPATCHER, withRetry } from "../http";
 const BASE_URL = "https://www.cmfchile.cl/institucional/legislacion_normativa/normativa2.php";
 
 export type TipoForm = "NCG" | "CIR" | "OFC";
-export type Mercado = "V" | "S";
+export type Mercado = "V" | "S" | "B";
 
 // Column indices in the normativa2.php results table (18 columns total):
 // 0=Tipo 1=Número 2=Fecha 3=Título 4=TextoRefundido 5=InformeNormativo
@@ -99,7 +99,8 @@ export function parseNormativa2Html(
 ): IndexEntry[] {
   const $ = cheerio.load(html);
   const entries: IndexEntry[] = [];
-  const sector = mercado === "V" ? Sector.VALORES : Sector.SEGUROS;
+  const sector =
+    mercado === "V" ? Sector.VALORES : mercado === "S" ? Sector.SEGUROS : Sector.BANCARIO;
   const tipoEnum =
     tiponorma === "NCG"
       ? TipoNorma.NCG

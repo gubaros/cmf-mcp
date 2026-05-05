@@ -1,17 +1,17 @@
 import { constants, accessSync, existsSync } from "node:fs";
-import { count, max, sql } from "drizzle-orm";
+import { count, max } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import { DATA_DIR, DB_PATH, getDb } from "../db/client";
-import { norms, validationLog } from "../db/schema";
+import { norms } from "../db/schema";
 
 export type ServerInfoResult = {
   version: string;
+  schemaVersion: string;
   repoUrl: string;
   totalNormas: number;
   porSector: Record<string, number>;
   ultimoScrape: string | null;
-  normasValidadas: number;
-  dataDir: string;
+  dataDirConfigured: boolean;
   dataDirWritable: boolean;
   dbInitialized: boolean;
   scrapeStale: boolean;
@@ -32,8 +32,8 @@ function isScrapeStale(ultimoScrape: string | null): boolean {
 }
 
 export async function serverInfoHandler(_input: Record<string, never>): Promise<ServerInfoResult> {
-  const dataDir = DATA_DIR;
-  const dataDirWritable = isDirWritable(dataDir);
+  const dataDirConfigured = existsSync(DATA_DIR);
+  const dataDirWritable = isDirWritable(DATA_DIR);
   const dbInitialized = existsSync(DB_PATH);
 
   try {
@@ -57,11 +57,6 @@ export async function serverInfoHandler(_input: Record<string, never>): Promise<
       .from(norms)
       .all();
 
-    const [validadoRow] = db
-      .select({ value: sql<number>`COUNT(DISTINCT ${validationLog.normId})` })
-      .from(validationLog)
-      .all();
-
     const porSector: Record<string, number> = {};
     for (const row of sectorRows) {
       porSector[row.sector] = row.cnt;
@@ -71,12 +66,12 @@ export async function serverInfoHandler(_input: Record<string, never>): Promise<
 
     return {
       version: "0.1.0",
+      schemaVersion: "1",
       repoUrl: "https://github.com/gubaros/cmf-mcp",
       totalNormas: totalRow?.value ?? 0,
       porSector,
       ultimoScrape,
-      normasValidadas: validadoRow?.value ?? 0,
-      dataDir,
+      dataDirConfigured,
       dataDirWritable,
       dbInitialized,
       scrapeStale: isScrapeStale(ultimoScrape),
@@ -84,12 +79,12 @@ export async function serverInfoHandler(_input: Record<string, never>): Promise<
   } catch {
     return {
       version: "0.1.0",
+      schemaVersion: "1",
       repoUrl: "https://github.com/gubaros/cmf-mcp",
       totalNormas: 0,
       porSector: {},
       ultimoScrape: null,
-      normasValidadas: 0,
-      dataDir,
+      dataDirConfigured,
       dataDirWritable,
       dbInitialized,
       scrapeStale: true,
