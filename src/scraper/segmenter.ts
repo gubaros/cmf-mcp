@@ -29,9 +29,12 @@ const RE_ARTICULO_HEADER = /^Artículo\s+(?:N[°º]?\s*)?(\d+)(?!\s+de\s+la\b)[\
 const RE_TITULO_HEADER = /^T[IÍ]TULO\s+([IVXLCDM]+)(?:[.\s:-]*([^\n]{0,200}))?/gim;
 const RE_ANEXO_HEADER = /^ANEXO\s+N[°º]?\s*(\d+)(?:[.\s:-]*([^\n]{0,200}))?/gim;
 // Bug #2: unnumbered annexes — "Anexo" alone or with title but no "N° X"
+// Strip "Hoja X" artifacts that OCR appends on the same line as "Anexo".
 const RE_ANEXO_STANDALONE = /^ANEXO\b(?!\s+N[°º]?\s*\d)(?:[.\s:-]*([^\n]{0,200}))?/gim;
+const RE_HOJA_ARTIFACT = /\s*Hoja\s+(?:N[°º]?\s*)?\d+\s*$/i;
 // Bug #1: Arabic numeral top-level sections — "1. Title" or "1.- Title"
-const RE_ARABIC_SECTION = /^(\d{1,2})\.(?:-\s*|\s+)([^\n]*)/gim;
+// `^\s*` tolerates OCR-injected leading spaces on each line.
+const RE_ARABIC_SECTION = /^\s*(\d{1,2})\.(?:-\s*|\s+)([^\n]*)/gim;
 // RAN chapters like ran-20-7 use "I. ÁMBITO DE APLICACIÓN" (Roman numeral + period + ALL CAPS).
 // No `i` flag: [a-z] must stay case-sensitive to distinguish "I. TITLE" from "I. lowercase body".
 // `^\s*` tolerates OCR-injected leading spaces; `$` ensures the match spans the full line.
@@ -175,7 +178,7 @@ function splitOnTitulos(
 
   // Bug #2: collect unnumbered standalone annexes ("Anexo" without "N° X")
   for (const m of text.matchAll(RE_ANEXO_STANDALONE)) {
-    const desc = (m[1] ?? "").trim();
+    const desc = (m[1] ?? "").trim().replace(RE_HOJA_ARTIFACT, "").trim();
     boundaries.push({
       start: m.index ?? 0,
       headerEnd: (m.index ?? 0) + m[0].length,
