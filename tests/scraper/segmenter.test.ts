@@ -115,6 +115,90 @@ para garantizar la continuidad operacional conforme a la normativa vigente
 de la Comisión para el Mercado Financiero y demás instrucciones aplicables.
 `.trim();
 
+// ran-8-41 pattern: Arabic numeral top-level sections (Bug #1)
+const RAN_ARABIC_SECTIONS = `
+1. Emisión de tarjetas
+
+Las entidades emisoras de tarjetas de pago deberán ajustarse a las instrucciones contenidas en
+el presente capítulo, complementando las disposiciones generales establecidas por la Comisión para
+el Mercado Financiero en materia de medios de pago electrónicos y sistemas de compensación
+interbancaria, conforme a los estándares internacionales aplicables al sector financiero chileno.
+
+2. Normas comunes a emisores
+
+Sin perjuicio de las instrucciones particulares para cada tipo de tarjeta, los emisores deberán
+cumplir con los requisitos mínimos de capital, gestión de riesgos y continuidad operacional que
+establece la Ley General de Bancos y la normativa complementaria vigente de la Comisión para el
+Mercado Financiero en concordancia con las instrucciones que se dicten mediante circular o resolución.
+
+3. Tarjetas de débito
+
+Los emisores de tarjetas de débito deberán mantener los fondos de los titulares en cuentas
+separadas e identificadas, garantizando la disponibilidad inmediata de los recursos y la correcta
+liquidación de las transacciones conforme a los plazos establecidos por la Comisión.
+`.trim();
+
+// ran-12-20 pattern: Roman sections + standalone unnumbered Anexo (Bug #2)
+const RAN_ANEXO_SIN_NUMERO = `
+I. ÁMBITO DE APLICACIÓN
+
+La presente norma regula la gestión de la posición de liquidez de las empresas bancarias sujetas
+a la supervisión de la Comisión para el Mercado Financiero, conforme a los criterios establecidos
+por el Comité de Basilea y los estándares internacionales aplicables al sector financiero chileno
+y en concordancia con las instrucciones que se dicten mediante circular o resolución de la Comisión.
+
+II. METODOLOGÍA DE CÁLCULO
+
+Las instituciones deberán calcular diariamente su razón de cobertura de liquidez y su razón de
+financiamiento estable neto, utilizando las instrucciones detalladas en el Anexo de este capítulo
+y las definiciones establecidas por la Comisión para el Mercado Financiero y sus instrucciones.
+
+Anexo
+
+Instrucciones para el cómputo de flujos de efectivo en el cálculo de las razones de liquidez.
+Las entidades clasificarán cada flujo según la categoría que corresponda conforme a lo indicado
+en las tablas siguientes, respetando los factores de ponderación establecidos por la Comisión
+para el Mercado Financiero en concordancia con los estándares de Basilea III vigentes.
+`.trim();
+
+// OCR artifact: "ANEXO N° 1 ANEXO N°1" on the same line (Bug #3)
+const RAN_ANEXO_RUBRICA_DUPLICADA = `
+TÍTULO I - Definiciones
+
+Para los efectos de esta norma se entenderá por proveedor externo aquel que proporciona
+infraestructura tecnológica crítica y que actúa en nombre de la institución financiera regulada,
+conforme a la ley vigente y las instrucciones de la Comisión para el Mercado Financiero.
+
+TÍTULO II - Requisitos generales
+
+Las instituciones reguladas deberán adoptar medidas de seguridad adecuadas para garantizar la
+continuidad operacional y la protección de los datos de sus clientes, conforme a los estándares
+internacionales aplicables al sector financiero regulado por la Comisión para el Mercado Financiero.
+
+ANEXO N° 1 ANEXO N°1
+
+Instrucciones específicas para completar los campos requeridos en este formulario de evaluación
+de proveedores externos, conforme a la normativa vigente de la Comisión para el Mercado Financiero
+en materia de externalización de servicios y gestión de riesgo tecnológico y operacional.
+`.trim();
+
+// OCR splits heading across two lines: "I. TITLE LINE 1\nLINE 2." (Bug #4)
+const RAN_RUBRICA_MULTILINEA = `
+I. PRINCIPALES RIESGOS QUE SE ASUMEN CON MOTIVO
+DE LA EXTERNALIZACIÓN DE SERVICIOS.
+
+Las instituciones deberán identificar y evaluar todos los riesgos asociados a la contratación
+de proveedores externos, incluyendo riesgo operacional, tecnológico, legal y de concentración,
+conforme a los estándares establecidos por la Comisión para el Mercado Financiero vigentes.
+
+II. CONDICIONES QUE DEBEN CUMPLIRSE EN LA
+EXTERNALIZACIÓN DE SERVICIOS.
+
+Los contratos de externalización deberán incluir cláusulas que aseguren el acceso irrestricto de
+la Comisión para el Mercado Financiero a la información y sistemas del proveedor, así como las
+condiciones de reversibilidad y continuidad operacional en caso de término anticipado del contrato.
+`.trim();
+
 // ran-20-7 realistic: Roman-numeral sections + ANEXO (no TÍTULO keyword)
 const RAN_ROMAN_CON_ANEXOS = `
 I. ÁMBITO DE APLICACIÓN
@@ -213,6 +297,50 @@ describe("segmentNorm", () => {
     for (const art of articles) {
       expect(art.texto.length).toBeGreaterThan(MIN_BODY_LEN_CHECK);
     }
+  });
+
+  it("Bug #1 — RAN con secciones arábiga top-level (ran-8-41): segmenta por numerales", () => {
+    const { mode, articles } = segmentNorm("ran-8-41", RAN_ARABIC_SECTIONS);
+    expect(mode).toBe("substantive");
+    expect(articles).toHaveLength(3);
+    expect(articles[0]?.numero).toBe("1");
+    expect(articles[1]?.numero).toBe("2");
+    expect(articles[2]?.numero).toBe("3");
+    for (const art of articles) {
+      expect(art.texto.length).toBeGreaterThan(MIN_BODY_LEN_CHECK);
+    }
+  });
+
+  it("Bug #2 — Anexo sin numeral (ran-12-20): Anexo separado como artículo propio", () => {
+    const { mode, articles } = segmentNorm("ran-12-20", RAN_ANEXO_SIN_NUMERO);
+    expect(mode).toBe("substantive");
+    const anexo = articles.find((a) => a.numero.toLowerCase().startsWith("anexo"));
+    expect(anexo).toBeDefined();
+    expect(anexo?.texto.length).toBeGreaterThan(MIN_BODY_LEN_CHECK);
+    // Annex content must NOT be merged into the last roman section
+    const lastRoman = articles.find((a) => a.numero === "II");
+    expect(lastRoman?.texto).not.toContain("Instrucciones para el cómputo");
+  });
+
+  it("Bug #3 — Rúbrica de Anexo duplicada: rubrica limpia sin repetición ANEXO N°X", () => {
+    const { articles } = segmentNorm("ran-test", RAN_ANEXO_RUBRICA_DUPLICADA);
+    const anexo = articles.find((a) => a.numero === "Anexo-1");
+    expect(anexo).toBeDefined();
+    // Must NOT contain "— ANEXO N°1" or similar self-referential suffix
+    expect(anexo?.rubrica).not.toMatch(/—\s*ANEXO\s*N[°º]?\s*\d+\s*$/i);
+    expect(anexo?.rubrica).toMatch(/Anexo N° 1/);
+  });
+
+  it("Bug #4 — Rúbrica multilínea: continuación unida a rubrica, fuera del texto", () => {
+    const { articles } = segmentNorm("ran-20-7", RAN_RUBRICA_MULTILINEA);
+    expect(articles).toHaveLength(2);
+    const art1 = articles[0];
+    expect(art1?.rubrica).toContain("EXTERNALIZACIÓN DE SERVICIOS");
+    // Continuation line must not leak into texto
+    expect(art1?.texto).not.toMatch(/^DE LA EXTERNALIZACIÓN/);
+    const art2 = articles[1];
+    expect(art2?.rubrica).toContain("EXTERNALIZACIÓN DE SERVICIOS");
+    expect(art2?.texto).not.toMatch(/^EXTERNALIZACIÓN DE SERVICIOS/);
   });
 
   it("RAN con headers PDF: headers stripeados, estructura preservada", () => {

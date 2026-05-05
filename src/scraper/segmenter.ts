@@ -28,6 +28,10 @@ const RE_ARTICULO_HEADER = /^Artículo\s+(?:N[°º]?\s*)?(\d+)(?!\s+de\s+la\b)[\
 // The T[IÍ] covers both the accented (TÍTULO) and unaccented (TITULO) variants.
 const RE_TITULO_HEADER = /^T[IÍ]TULO\s+([IVXLCDM]+)(?:[.\s:-]*([^\n]{0,200}))?/gim;
 const RE_ANEXO_HEADER = /^ANEXO\s+N[°º]?\s*(\d+)(?:[.\s:-]*([^\n]{0,200}))?/gim;
+// Bug #2: unnumbered annexes — "Anexo" alone or with title but no "N° X"
+const RE_ANEXO_STANDALONE = /^ANEXO\b(?!\s+N[°º]?\s*\d)(?:[.\s:-]*([^\n]{0,200}))?/gim;
+// Bug #1: Arabic numeral top-level sections — "1. Title" or "1.- Title"
+const RE_ARABIC_SECTION = /^(\d{1,2})\.(?:-\s*|\s+)([^\n]*)/gim;
 // RAN chapters like ran-20-7 use "I. ÁMBITO DE APLICACIÓN" (Roman numeral + period + ALL CAPS).
 // No `i` flag: [a-z] must stay case-sensitive to distinguish "I. TITLE" from "I. lowercase body".
 // `^\s*` tolerates OCR-injected leading spaces; `$` ensures the match spans the full line.
@@ -61,6 +65,14 @@ function stripPdfArtifacts(text: string): string {
     .replace(RE_PDF_CIRCULAR_HEADER, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+// Bug #3: OCR sometimes injects "ANEXO N°1" on the same line as "ANEXO N° 1",
+// producing desc = "ANEXO N°1" and rubrica = "Anexo N° 1 — ANEXO N°1".
+// Strip any leading self-referential "ANEXO N°X" from desc before building rubrica.
+function buildAnexoRubrica(num: string, desc: string): string {
+  const cleaned = desc.replace(/^ANEXO\s*N[°º]?\s*\d+\s*[-–—]?\s*/i, "").trim();
+  return cleaned ? `Anexo N° ${num} — ${cleaned}` : `Anexo N° ${num}`;
 }
 
 function buildId(normId: string, numero: string): string {
@@ -157,7 +169,18 @@ function splitOnTitulos(
       start: m.index ?? 0,
       headerEnd: (m.index ?? 0) + m[0].length,
       numero: `Anexo-${num}`,
-      rubrica: desc ? `Anexo N° ${num} — ${desc}` : `Anexo N° ${num}`,
+      rubrica: buildAnexoRubrica(num, desc),
+    });
+  }
+
+  // Bug #2: collect unnumbered standalone annexes ("Anexo" without "N° X")
+  for (const m of text.matchAll(RE_ANEXO_STANDALONE)) {
+    const desc = (m[1] ?? "").trim();
+    boundaries.push({
+      start: m.index ?? 0,
+      headerEnd: (m.index ?? 0) + m[0].length,
+      numero: "Anexo",
+      rubrica: desc || "Anexo",
     });
   }
 
@@ -183,9 +206,21 @@ function splitOnTitulos(
     const b = unique[i];
     if (!b) continue;
     const nextStart = unique[i + 1]?.start ?? text.length;
-    const body = text.slice(b.headerEnd, nextStart).trim();
+    let body = text.slice(b.headerEnd, nextStart).trim();
+    let rubrica = b.rubrica;
+
+    // Bug #4: OCR splits heading across two lines — join continuation into rubrica
+    if (rubrica) {
+      const bodyLines = body.split("\n");
+      const cont = (bodyLines[0] ?? "").trim();
+      if (cont && cont.length < 120 && cont === cont.toUpperCase() && cont.endsWith(".") && bodyLines.length > 1) {
+        rubrica = `${rubrica} ${cont}`;
+        body = bodyLines.slice(1).join("\n").trim();
+      }
+    }
+
     if (body.length === 0) continue;
-    segments.push({ numero: b.numero, rubrica: b.rubrica, body });
+    segments.push({ numero: b.numero, rubrica, body });
   }
 
   return segments.length >= 2 ? segments : null;
@@ -221,7 +256,18 @@ function splitOnRomanSections(
       start: m.index ?? 0,
       headerEnd: (m.index ?? 0) + m[0].length,
       numero: `Anexo-${num}`,
-      rubrica: desc ? `Anexo N° ${num} — ${desc}` : `Anexo N° ${num}`,
+      rubrica: buildAnexoRubrica(num, desc),
+    });
+  }
+
+  // Bug #2: collect unnumbered standalone annexes
+  for (const m of text.matchAll(RE_ANEXO_STANDALONE)) {
+    const desc = (m[1] ?? "").trim();
+    boundaries.push({
+      start: m.index ?? 0,
+      headerEnd: (m.index ?? 0) + m[0].length,
+      numero: "Anexo",
+      rubrica: desc || "Anexo",
     });
   }
 
@@ -244,6 +290,55 @@ function splitOnRomanSections(
     const b = unique[i];
     if (!b) continue;
     const nextStart = unique[i + 1]?.start ?? text.length;
+    let body = text.slice(b.headerEnd, nextStart).trim();
+    let rubrica = b.rubrica;
+
+    // Bug #4: OCR splits heading across two lines — join continuation into rubrica
+    if (rubrica) {
+      const bodyLines = body.split("\n");
+      const cont = (bodyLines[0] ?? "").trim();
+      if (cont && cont.length < 120 && cont === cont.toUpperCase() && cont.endsWith(".") && bodyLines.length > 1) {
+        rubrica = `${rubrica} ${cont}`;
+        body = bodyLines.slice(1).join("\n").trim();
+      }
+    }
+
+    if (body.length < MIN_BODY_LEN) return null;
+    segments.push({ numero: b.numero, rubrica, body });
+  }
+
+  return segments.length >= 2 ? segments : null;
+}
+
+// Bug #1: RAN chapters like ran-8-41 use "1. Title" or "1.- Title" as top-level structural
+// sections. Guards: ≥2 boundaries, every body ≥ MIN_BODY_LEN (avoids numbered-list body text).
+function splitOnArabicSections(
+  text: string,
+): Array<{ numero: string; rubrica: string | null; body: string }> | null {
+  type Boundary = { start: number; headerEnd: number; numero: string; rubrica: string | null };
+  const boundaries: Boundary[] = [];
+
+  for (const m of text.matchAll(RE_ARABIC_SECTION)) {
+    const num = m[1] ?? "";
+    const title = (m[2] ?? "").trim();
+    boundaries.push({
+      start: m.index ?? 0,
+      headerEnd: (m.index ?? 0) + m[0].length,
+      numero: num,
+      rubrica: title || null,
+    });
+  }
+
+  if (boundaries.length < 2) return null;
+
+  boundaries.sort((a, b) => a.start - b.start);
+
+  const segments: Array<{ numero: string; rubrica: string | null; body: string }> = [];
+
+  for (let i = 0; i < boundaries.length; i++) {
+    const b = boundaries[i];
+    if (!b) continue;
+    const nextStart = boundaries[i + 1]?.start ?? text.length;
     const body = text.slice(b.headerEnd, nextStart).trim();
     if (body.length < MIN_BODY_LEN) return null;
     segments.push({ numero: b.numero, rubrica: b.rubrica, body });
@@ -318,6 +413,12 @@ export function segmentNorm(normId: string, rawText: string): SegmentResult {
   const romanSegments = splitOnRomanSections(text);
   if (romanSegments !== null) {
     return { mode: "substantive", articles: buildArticles(normId, romanSegments) };
+  }
+
+  // Bug #1: RAN chapters with Arabic numeral top-level sections (e.g. ran-8-41)
+  const arabicSegments = splitOnArabicSections(text);
+  if (arabicSegments !== null) {
+    return { mode: "substantive", articles: buildArticles(normId, arabicSegments) };
   }
 
   // Dispositivos numerados o prosa sin estructura reconocida
