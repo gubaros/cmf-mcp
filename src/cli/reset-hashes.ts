@@ -16,9 +16,11 @@ import { articles, norms } from "../db/schema";
 function parseArgs(): { id: string | undefined; sector: string | undefined; all: boolean } {
   const args = process.argv.slice(2);
   const idIdx = args.indexOf("--id");
-  if (idIdx !== -1 && args[idIdx + 1]) return { id: args[idIdx + 1] as string, sector: undefined, all: false };
+  if (idIdx !== -1 && args[idIdx + 1])
+    return { id: args[idIdx + 1] as string, sector: undefined, all: false };
   const sectorIdx = args.indexOf("--sector");
-  if (sectorIdx !== -1 && args[sectorIdx + 1]) return { id: undefined, sector: args[sectorIdx + 1] as string, all: false };
+  if (sectorIdx !== -1 && args[sectorIdx + 1])
+    return { id: undefined, sector: args[sectorIdx + 1] as string, all: false };
   if (args.includes("--all")) return { id: undefined, sector: undefined, all: true };
   console.error("Usage: reset-hashes --id <normId> | --sector <SECTOR|RAN> | --all");
   process.exit(1);

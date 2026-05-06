@@ -24,7 +24,8 @@ export type SegmentResult = {
 // No `s` flag intentionally: `.` stops at \n so each match covers exactly one header line.
 // Captures ordinal suffixes (bis, ter, quinquies…) as part of the number so they
 // don't bleed into the rubric. Negative lookahead still rejects "de la Ley".
-const RE_ARTICULO_HEADER = /^Artículo\s+(?:N[°º]?\s*)?(\d+[°º]?\s*(?:bis|ter|qu[aá]ter|quinquies|sexies)?)(?!\s+de\s+la\b)[\s.:-]*(.*)/gim;
+const RE_ARTICULO_HEADER =
+  /^Artículo\s+(?:N[°º]?\s*)?(\d+[°º]?\s*(?:bis|ter|qu[aá]ter|quinquies|sexies)?)(?!\s+de\s+la\b)[\s.:-]*(.*)/gim;
 
 // RAN chapters (e.g. 20-7) use TÍTULO I / TÍTULO II / ANEXO N° 1 headings.
 // The T[IÍ] covers both the accented (TÍTULO) and unaccented (TITULO) variants.
@@ -152,7 +153,7 @@ function splitOnArticulos(
         const match = body.match(/^(\S+)(.*)/s);
         if (match) {
           rubrica = rubrica.slice(0, -1) + (match[1] ?? "");
-          body = ((match[2] ?? "").trimStart());
+          body = (match[2] ?? "").trimStart();
         }
       }
     }
@@ -386,11 +387,11 @@ function splitOnArabicSections(
     let rubrica = b.rubrica;
     let body = text.slice(b.headerEnd, nextStart).trim();
     // Reconnect OCR hyphen word-break in the rubric: "median-" + "te" → "mediante"
-    if (rubrica && rubrica.endsWith("-")) {
+    if (rubrica?.endsWith("-")) {
       const match = body.match(/^(\S+)(.*)/s);
       if (match) {
         rubrica = rubrica.slice(0, -1) + (match[1] ?? "");
-        body = ((match[2] ?? "").trimStart());
+        body = (match[2] ?? "").trimStart();
       }
     }
     if (body.length < MIN_BODY_LEN) return null;

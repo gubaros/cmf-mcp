@@ -35,11 +35,7 @@
     "zod": "^3.23.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "@biomejs/biome",
-      "better-sqlite3",
-      "esbuild"
-    ]
+    "onlyBuiltDependencies": ["@biomejs/biome", "better-sqlite3", "esbuild"]
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
