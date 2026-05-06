@@ -31,17 +31,20 @@ const RE_ARTICULO_HEADER =
 // The T[IÍ] covers both the accented (TÍTULO) and unaccented (TITULO) variants.
 const RE_TITULO_HEADER = /^T[IÍ]TULO\s+([IVXLCDM]+)(?:[.\s:-]*([^\n]{0,200}))?/gim;
 const RE_ANEXO_HEADER = /^ANEXO\s+N[°º]?\s*(\d+)(?:[.\s:-]*([^\n]{0,200}))?/gim;
-// Bug #2: unnumbered annexes — "Anexo" alone or with title but no "N° X"
+// Bug #2: unnumbered annexes — "Anexo" alone or with title but no "N° X".
 // Strip "Hoja X" artifacts that OCR appends on the same line as "Anexo".
 const RE_ANEXO_STANDALONE = /^ANEXO\b(?!\s+N[°º]?\s*\d)(?:[.\s:-]*([^\n]{0,200}))?/gim;
 const RE_HOJA_ARTIFACT = /\s*Hoja\s+(?:N[°º]?\s*)?\d+\s*$/i;
 // Bug #1: Arabic numeral top-level sections — "1. Title" or "1.- Title"
 // `^\s*` tolerates OCR-injected leading spaces on each line.
 const RE_ARABIC_SECTION = /^\s*(\d{1,2})\.(?:-\s*|\s+)([^\n]*)/gim;
-// RAN chapters like ran-20-7 use "I. ÁMBITO DE APLICACIÓN" (Roman numeral + period + ALL CAPS).
-// No `i` flag: [a-z] must stay case-sensitive to distinguish "I. TITLE" from "I. lowercase body".
-// `^\s*` tolerates OCR-injected leading spaces; `$` ensures the match spans the full line.
-const RE_ROMAN_SECTION = /^\s*([IVXLCDM]+)\.\s+([^\na-z]{4,})\s*$/gm;
+// RAN chapters use "I. TITLE" or "I.- TITLE" (Roman numeral + period [+ hyphen] + title).
+// [IVX]+ limits to standard Roman numerals (excludes lone C/D/L/M used as letter headings
+// inside annexes). [^\n]{4,} allows Title Case headings in addition to ALL CAPS — some
+// RAN chapters (e.g. ran-21-13 §III) use "III. Informe de Autoevaluación..." mixed case.
+// \.(?:-\s+|\s+) handles both "I. TITLE" and "I.- TITLE" formats (ran-12-4).
+// No `i` flag: keeps [^\n] case-sensitive for the $-anchored full-line check.
+const RE_ROMAN_SECTION = /^\s*([IVX]+)\.(?:-\s+|\s+)([^\n]{4,})\s*$/gm;
 
 // PDF running headers that OCR embeds on every page in RAN documents.
 // Each pattern matches only when the line contains NOTHING else (start + end anchors).
@@ -109,9 +112,14 @@ function splitOnArticulos(
   const boundaries: Boundary[] = [];
 
   for (const m of text.matchAll(RE_ARTICULO_HEADER)) {
+    const idx = m.index ?? 0;
+    // Only accept article headers that open a new paragraph (preceded by blank line or at
+    // text start). Inline citations of "artículo 84 de la LGB" sometimes wrap to line start
+    // in OCR output; those are preceded by a single \n, not the \n\n of a paragraph break.
+    if (idx > 1 && !text.slice(Math.max(0, idx - 2), idx).endsWith("\n\n")) continue;
     boundaries.push({
-      start: m.index ?? 0,
-      headerEnd: (m.index ?? 0) + m[0].length,
+      start: idx,
+      headerEnd: idx + m[0].length,
       // Normalize ordinal suffixes: "66 quinquies" → "66-quinquies"
       numero: (m[1] ?? "").trim().replace(/\s+/g, "-"),
       restOfLine: (m[2] ?? "").trim(),
@@ -177,14 +185,18 @@ function splitOnTitulos(
   let tituloCount = 0;
 
   for (const m of text.matchAll(RE_TITULO_HEADER)) {
+    const idx = m.index ?? 0;
+    // Skip inline citations: "del Título I, con el objeto..." wraps to line start in OCR.
+    // Structural headings always follow a blank line (or are at text start).
+    if (idx > 1 && !text.slice(Math.max(0, idx - 2), idx).endsWith("\n\n")) continue;
     const romano = (m[1] ?? "").toUpperCase();
     const desc = (m[2] ?? "").trim();
     // Reject inline cross-references: "TÍTULO II del Capítulo 20-9" or "TÍTULO I de la Ley"
     if (/^del?\s/i.test(desc)) continue;
     tituloCount++;
     boundaries.push({
-      start: m.index ?? 0,
-      headerEnd: (m.index ?? 0) + m[0].length,
+      start: idx,
+      headerEnd: idx + m[0].length,
       numero: romano,
       rubrica: desc || null,
     });
@@ -206,9 +218,14 @@ function splitOnTitulos(
     });
   }
 
-  // Bug #2: collect unnumbered standalone annexes ("Anexo" without "N° X")
+  // Bug #2: collect unnumbered standalone annexes ("Anexo" without "N° X").
+  // Skip if desc starts with a lowercase letter ("Anexo del presente Capítulo" — inline
+  // reference wrapped to line start) or with a digit + list-marker like "1) riesgos..."
+  // (numbered list item in body text).
   for (const m of text.matchAll(RE_ANEXO_STANDALONE)) {
     const desc = (m[1] ?? "").trim().replace(RE_HOJA_ARTIFACT, "").trim();
+    if (/^[a-záéíóúñü]/.test(desc)) continue;
+    if (/^\d+[).]/.test(desc)) continue;
     boundaries.push({
       start: m.index ?? 0,
       headerEnd: (m.index ?? 0) + m[0].length,
@@ -299,9 +316,11 @@ function splitOnRomanSections(
     });
   }
 
-  // Bug #2: collect unnumbered standalone annexes
+  // Bug #2: collect unnumbered standalone annexes; skip inline prose/list references
   for (const m of text.matchAll(RE_ANEXO_STANDALONE)) {
     const desc = (m[1] ?? "").trim();
+    if (/^[a-záéíóúñü]/.test(desc)) continue;
+    if (/^\d+[).]/.test(desc)) continue;
     boundaries.push({
       start: m.index ?? 0,
       headerEnd: (m.index ?? 0) + m[0].length,
@@ -314,8 +333,18 @@ function splitOnRomanSections(
 
   boundaries.sort((a, b) => a.start - b.start);
 
+  // Roman-numeral sub-headings that appear inside an Annexe body (e.g. ran-12-4 has
+  // "IV. Solicitud…" and "V. Eliminación…" as sub-sections of its Annexe) must not be
+  // treated as top-level chapter sections. Drop any Roman section boundary that starts
+  // after the first Annexe boundary — Annexe entries themselves are always kept.
+  const firstAnexoPos =
+    boundaries.find((b) => b.numero.startsWith("Anexo"))?.start ?? Number.POSITIVE_INFINITY;
+  const aboveAnexo = boundaries.filter(
+    (b) => b.numero.startsWith("Anexo") || b.start < firstAnexoPos,
+  );
+
   const seenNumero = new Set<string>();
-  const unique = boundaries.filter((b) => {
+  const unique = aboveAnexo.filter((b) => {
     if (seenNumero.has(b.numero)) return false;
     seenNumero.add(b.numero);
     return true;
