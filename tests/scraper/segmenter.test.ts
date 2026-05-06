@@ -472,6 +472,91 @@ describe("segmentNorm", () => {
       expect(art.texto).not.toMatch(/^Circular\s+N[°º]\s*[\d.]+\s*\//m);
     }
   });
+
+  it("Bug E — sección romana Title Case detectada (ran-21-13 §III usa mixed case)", () => {
+    // Old RE_ROMAN_SECTION used [^\na-z]{4,} which required ALL CAPS titles.
+    // ran-21-13 §III heading is "III. Informe de Autoevaluación..." — mixed case.
+    // New regex uses [^\n]{4,} to allow any non-newline chars in the title.
+    const text = [
+      "I. OBJETIVO DEL PROCESO",
+      "",
+      "La presente norma establece los criterios para evaluar la suficiencia del capital interno",
+      "de las empresas bancarias, conforme a los principios de Basilea y las instrucciones vigentes",
+      "de la Comisión para el Mercado Financiero aplicables al sector bancario supervisado.",
+      "",
+      "II. CRITERIOS DE EVALUACIÓN",
+      "",
+      "Las instituciones deberán documentar su metodología de evaluación interna conforme a los",
+      "parámetros establecidos por la Comisión, incluyendo los escenarios de estrés y las",
+      "proyecciones de capital ajustadas por riesgo para el horizonte de planificación definido.",
+      "",
+      "III. Informe de Autoevaluación de Patrimonio",
+      "",
+      "Las instituciones deberán elaborar anualmente un informe de autoevaluación conforme a las",
+      "instrucciones que imparta la Comisión, aprobado por el directorio y remitido dentro del",
+      "plazo establecido en la normativa vigente de la Comisión para el Mercado Financiero.",
+    ].join("\n");
+    const { mode, articles } = segmentNorm("ran-21-13", text);
+    expect(mode).toBe("substantive");
+    expect(articles).toHaveLength(3);
+    expect(articles[0]?.numero).toBe("I");
+    expect(articles[1]?.numero).toBe("II");
+    expect(articles[2]?.numero).toBe("III");
+    expect(articles[2]?.rubrica).toContain("Informe de Autoevaluación");
+  });
+
+  it("Bug E — sección romana con formato I.- detectada (ran-12-4 usa punto+guion)", () => {
+    // Old RE_ROMAN_SECTION used \.\s+ which didn't match the "I.-" separator.
+    // ran-12-4 uses "I.- PERSONAS RELACIONADAS…" with hyphen after the period.
+    // New regex uses \.(?:-\s+|\s+) to accept both "I. TITLE" and "I.- TITLE".
+    const text = [
+      "I.- PERSONAS RELACIONADAS CON LA PROPIEDAD",
+      "",
+      "Para efectos de esta norma, se entenderá por personas relacionadas con la propiedad o",
+      "gestión de un banco aquellas señaladas en la normativa vigente y sus instrucciones",
+      "complementarias emitidas por la Comisión para el Mercado Financiero aplicables.",
+      "",
+      "II.- MEDICIÓN DE LA CONCENTRACIÓN DE CRÉDITOS",
+      "",
+      "Las instituciones deberán calcular la concentración de créditos conforme a los límites",
+      "establecidos en la normativa y las instrucciones de la Comisión, utilizando los métodos",
+      "de medición que se detallan en el presente capítulo de la norma vigente aplicable.",
+    ].join("\n");
+    const { mode, articles } = segmentNorm("ran-12-4", text);
+    expect(mode).toBe("substantive");
+    expect(articles).toHaveLength(2);
+    expect(articles[0]?.numero).toBe("I");
+    expect(articles[1]?.numero).toBe("II");
+  });
+
+  it("Bug E — citación inline LGB al inicio de línea (ran-12-3): cae a secciones romanas", () => {
+    // OCR wraps sentences so "artículo 84 Nº 2" lands at the start of a line mid-paragraph.
+    // Without the \n\n guard, splitOnArticulos treated these as real article headers (Patrón B).
+    // The guard now rejects any match not preceded by \n\n; the norm falls through to
+    // splitOnRomanSections and produces the correct Roman-section structure.
+    const text = [
+      "I. CUENTAS EN MONEDA EXTRANJERA",
+      "",
+      "Las instituciones bancarias que mantengan operaciones en moneda extranjera deberán reportar",
+      "sus posiciones conforme a las instrucciones de la Comisión, incluyendo lo dispuesto en el",
+      "artículo 84 Nº 2 de la Ley General de Bancos relativo a los límites de concentración y los",
+      "criterios de valorización establecidos en la normativa vigente de la Comisión aplicable.",
+      "",
+      "II. LÍMITES DE POSICIÓN",
+      "",
+      "Los límites de posición en moneda extranjera están determinados por el capital básico,",
+      "conforme a lo dispuesto en el artículo 74 Nº 1 de la Ley General de Bancos, considerando",
+      "las deducciones y ajustes que correspondan según las instrucciones de la Comisión vigente.",
+    ].join("\n");
+    const { mode, articles } = segmentNorm("ran-12-3", text);
+    expect(mode).toBe("substantive");
+    expect(articles).toHaveLength(2);
+    expect(articles[0]?.numero).toBe("I");
+    expect(articles[1]?.numero).toBe("II");
+    // No false article boundaries from inline LGB citations
+    expect(articles.find((a) => a.numero === "84")).toBeUndefined();
+    expect(articles.find((a) => a.numero === "74")).toBeUndefined();
+  });
 });
 
 const MIN_BODY_LEN_CHECK = 99;
